@@ -395,9 +395,11 @@ h2 { letter-spacing: -0.01em; }
   .kpi-hero-row { grid-template-columns: 1fr; }
 }
 
-.follower-hero { display: flex; flex-direction: column; justify-content: center; }
+.follower-hero { display: flex; flex-direction: column; justify-content: flex-start; }
 
-.follower-hero-body { display: flex; align-items: center; gap: 18px; }
+.hero-value-row { display: flex; align-items: center; min-height: 64px; }
+
+.follower-hero-body { display: flex; align-items: center; gap: 18px; min-height: 64px; }
 
 .follower-hero-icon {
   width: 64px;

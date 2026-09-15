@@ -51,17 +51,16 @@ function renderFollowerHero(data) {
 
   el.innerHTML = `
     <div class="hero-title">현재 팔로워</div>
-    <div class="follower-hero-body">
+    <div class="hero-value-row follower-hero-body">
       <div class="follower-hero-icon">${PERSON_ICON_FULL_SVG}</div>
-      <div>
-        <div class="follower-hero-value">${current != null ? current.toLocaleString() : '-'}</div>
-        ${
-          delta != null
-            ? `<div class="hero-delta ${delta >= 0 ? 'pos' : 'neg'}">${delta >= 0 ? '+' : ''}${delta.toLocaleString()}명 전월 대비</div>`
-            : '<div class="hero-empty">한 달 이상 데이터가 쌓이면 전월 대비 증감이 표시돼요.</div>'
-        }
-      </div>
+      <div class="follower-hero-value">${current != null ? current.toLocaleString() : '-'}</div>
     </div>
+    ${
+      delta != null
+        ? `<div class="hero-delta ${delta >= 0 ? 'pos' : 'neg'}">${delta >= 0 ? '+' : ''}${delta.toLocaleString()}명 전월 대비</div>`
+        : '<div class="hero-empty">한 달 이상 데이터가 쌓이면 전월 대비 증감이 표시돼요.</div>'
+    }
+    <div class="hero-stat-meaning">월 단위 집계</div>
   `;
 }
 
@@ -71,7 +70,7 @@ function renderMonthlyStatHero(elId, title, meaning, pairs) {
 
   el.innerHTML = `
     <div class="hero-title">${title} <span class="hero-title-note">— ${meaning}</span></div>
-    <div class="follower-hero-value">${total != null ? Math.round(total).toLocaleString() : '-'}</div>
+    <div class="hero-value-row"><div class="follower-hero-value">${total != null ? Math.round(total).toLocaleString() : '-'}</div></div>
     ${
       delta != null
         ? `<div class="hero-delta ${delta >= 0 ? 'pos' : 'neg'}">${delta >= 0 ? '+' : ''}${Math.round(delta).toLocaleString()} ${isPartial ? '지난달 같은 기간 대비' : '전월 대비'}</div>`
