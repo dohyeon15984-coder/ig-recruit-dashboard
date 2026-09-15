@@ -396,7 +396,7 @@ function renderPostsTable(data) {
         <td>${thumbHtml(p, 'row-thumb')}</td>
         <td>${new Date(p.timestamp).toLocaleDateString('ko-KR')}</td>
         <td class="caption-cell">${escapeHtml(p.caption || '').slice(0, 60)}</td>
-        <td>${MEDIA_TYPE_LABEL[p.media_type] || p.media_type}</td>
+        <td>${MEDIA_TYPE_LABEL[p.media_type] || p.media_type}${p.is_collab ? ' · 공동' : ''}</td>
         <td>
           <select class="tag-select" data-post-id="${p.id}">
             <option value="">${CATEGORY_PLACEHOLDER}</option>
@@ -444,7 +444,7 @@ function openPostModal(postId) {
     ${thumbHtml(post, 'modal-thumb')}
     <div class="modal-title">${escapeHtml(post.caption || '(캡션 없음)')}</div>
     <div class="modal-meta">
-      ${new Date(post.timestamp).toLocaleString('ko-KR')} · ${MEDIA_TYPE_LABEL[post.media_type] || post.media_type}${post.category ? ' · ' + post.category : ' · 카테고리 미지정'}
+      ${new Date(post.timestamp).toLocaleString('ko-KR')} · ${MEDIA_TYPE_LABEL[post.media_type] || post.media_type}${post.is_collab ? ' · 공동 게시물' : ''}${post.category ? ' · ' + post.category : ' · 카테고리 미지정'}
     </div>
     <div class="modal-stats">
       <div class="modal-stat">
