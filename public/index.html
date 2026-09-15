@@ -81,17 +81,23 @@
     </div>
 
     <div class="tab-panel" data-tab-panel="details" hidden>
-      <section class="panel" id="demographicsPanel" hidden>
-        <h2>팔로워 인구통계</h2>
-        <div class="demographics-grid">
-          <div class="demo-gender-col">
-            <div class="demo-subtitle">성별</div>
-            <div id="genderBadges" class="gender-badges"></div>
+      <section class="panel-row">
+        <div class="panel panel-half" id="demographicsPanel" hidden>
+          <h2>팔로워 인구통계</h2>
+          <div class="demographics-grid">
+            <div class="demo-gender-col">
+              <div class="demo-subtitle">성별</div>
+              <div id="genderBadges" class="gender-badges"></div>
+            </div>
+            <div class="demo-age-col">
+              <div class="demo-subtitle">연령대</div>
+              <div class="chart-wrap chart-wrap-sm"><canvas id="ageChart"></canvas></div>
+            </div>
           </div>
-          <div class="demo-age-col">
-            <div class="demo-subtitle">연령대</div>
-            <div class="chart-wrap chart-wrap-sm"><canvas id="ageChart"></canvas></div>
-          </div>
+        </div>
+        <div class="panel panel-half">
+          <h2>팔로워 성장 추이 (월별)</h2>
+          <div class="chart-wrap"><canvas id="followerChart"></canvas></div>
         </div>
       </section>
 
@@ -100,15 +106,9 @@
         <div id="reelsCompareBody"></div>
       </section>
 
-      <section class="panel-row">
-        <div class="panel panel-half">
-          <h2>팔로워 성장 추이 (월별)</h2>
-          <div class="chart-wrap"><canvas id="followerChart"></canvas></div>
-        </div>
-        <div class="panel panel-half">
-          <h2>도달 &amp; 프로필 조회수 추이</h2>
-          <div class="chart-wrap"><canvas id="reachChart"></canvas></div>
-        </div>
+      <section class="panel">
+        <h2>도달 &amp; 프로필 조회수 추이</h2>
+        <div class="chart-wrap"><canvas id="reachChart"></canvas></div>
       </section>
 
       <section class="panel-row">
