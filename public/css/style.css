@@ -197,18 +197,6 @@ h2 { letter-spacing: -0.01em; }
   max-width: 1320px;
 }
 
-.kpi-card {
-  background: var(--card-bg);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-  padding: 16px 18px;
-}
-
-.kpi-label { font-size: 12.5px; color: var(--text-mute); margin-bottom: 8px; font-weight: 600; }
-.kpi-value { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
-.kpi-delta { font-size: 12.5px; margin-top: 5px; color: var(--text-faint); }
-.kpi-delta.pos { color: var(--good); font-weight: 600; }
-.kpi-delta.neg { color: var(--bad); font-weight: 600; }
 
 .panel {
   background: var(--card-bg);
@@ -399,19 +387,12 @@ h2 { letter-spacing: -0.01em; }
 
 .kpi-hero-row {
   display: grid;
-  grid-template-columns: 1fr 2fr;
-  gap: 14px;
-}
-
-.side-kpi-grid {
-  display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 14px;
 }
 
 @media (max-width: 860px) {
   .kpi-hero-row { grid-template-columns: 1fr; }
-  .side-kpi-grid { grid-template-columns: repeat(3, 1fr); }
 }
 
 .follower-hero { display: flex; flex-direction: column; justify-content: center; }

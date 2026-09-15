@@ -7,7 +7,7 @@ const PERSON_ICON_FULL_SVG =
   '<svg viewBox="0 0 24 24" width="52" height="52" fill="currentColor"><circle cx="12" cy="4.5" r="2.5"/><path d="M12 8.5c-2.8 0-5 1.6-5 4.2V15h2v6.5h6V15h2v-2.3c0-2.6-2.2-4.2-5-4.2z"/></svg>';
 
 // 날짜별 이력을 월 단위로 묶어(같은 달이면 가장 최근 날짜 값 사용) 한 달=한 포인트로 만든다.
-// 팔로워 수처럼 "월 단위로 보고 싶다"고 정한 지표에 사용 — 매일 동기화해도 그래프/KPI가 월별로 유지된다.
+// 팔로워 수처럼 스냅샷 성격의(누적 총계) 지표에 사용 — 매일 동기화해도 그래프/KPI가 월별로 유지된다.
 function monthlyBucketed(history, field) {
   const byMonth = new Map();
   for (const h of history) {
@@ -17,6 +17,28 @@ function monthlyBucketed(history, field) {
     if (!existing || h.date > existing.date) byMonth.set(month, h);
   }
   return [...byMonth.values()].sort((a, b) => a.date.localeCompare(b.date));
+}
+
+// 이번 달처럼 아직 다 지나지 않은 달의 합계를, 지난달 "전체"와 비교하면 항상 적어 보여서 불공평하다.
+// 그래서 지난달도 이번 달과 같은 날짜(1일~오늘 날짜)까지만 합산해서 공평하게 비교한다.
+// pairs: [dateString('YYYY-MM-DD'), value] 배열.
+function monthlySumFairCompare(pairs) {
+  if (!pairs.length) return { total: null, delta: null, isPartial: false };
+  const sorted = [...pairs].sort((a, b) => a[0].localeCompare(b[0]));
+  const months = [...new Set(sorted.map(([d]) => d.slice(0, 7)))];
+  const currentMonth = months[months.length - 1];
+  const priorMonth = months[months.length - 2];
+
+  const currentRows = sorted.filter(([d]) => d.slice(0, 7) === currentMonth);
+  const total = currentRows.reduce((sum, [, v]) => sum + v, 0);
+  if (!priorMonth) return { total, delta: null, isPartial: false };
+
+  const lastDay = Math.max(...currentRows.map(([d]) => Number(d.slice(8, 10))));
+  const priorRows = sorted.filter(([d]) => d.slice(0, 7) === priorMonth);
+  const priorMonthLastDay = Math.max(...priorRows.map(([d]) => Number(d.slice(8, 10))));
+  const priorComparable = priorRows.filter(([d]) => Number(d.slice(8, 10)) <= lastDay).reduce((sum, [, v]) => sum + v, 0);
+
+  return { total, delta: total - priorComparable, isPartial: lastDay < priorMonthLastDay };
 }
 
 function renderFollowerHero(data) {
@@ -43,33 +65,30 @@ function renderFollowerHero(data) {
   `;
 }
 
-function renderSideKpis(data) {
-  const grid = document.getElementById('sideKpiGrid');
-  const monthlyPV = monthlyBucketed(data.history, 'profile_views');
-  const latestPV = monthlyPV[monthlyPV.length - 1];
-  const prevPV = monthlyPV[monthlyPV.length - 2];
-  const pvDelta = latestPV && prevPV ? latestPV.profile_views - prevPV.profile_views : null;
+function renderMonthlyStatHero(elId, title, meaning, pairs) {
+  const el = document.getElementById(elId);
+  const { total, delta, isPartial } = monthlySumFairCompare(pairs);
 
-  grid.innerHTML = `
-    <div class="kpi-card">
-      <div class="kpi-label">프로필 방문</div>
-      <div class="kpi-value">${latestPV ? latestPV.profile_views.toLocaleString() : '-'}</div>
-      ${
-        pvDelta != null
-          ? `<div class="kpi-delta ${pvDelta >= 0 ? 'pos' : 'neg'}">${pvDelta >= 0 ? '+' : ''}${pvDelta.toLocaleString()} 전월 대비</div>`
-          : '<div class="kpi-delta">월 단위 집계</div>'
-      }
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">게시물 수 (선택 필터 기준)</div>
-      <div class="kpi-value">${data.posts.length}</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">팔로우 전환율</div>
-      <div class="kpi-value">${data.funnel && data.funnel.followConversionRate != null ? (data.funnel.followConversionRate * 100).toFixed(2) + '%' : '-'}</div>
-      <div class="kpi-delta">신규 팔로워 / 도달 (선택 구간)</div>
-    </div>
+  el.innerHTML = `
+    <div class="hero-title">${title} <span class="hero-title-note">— ${meaning}</span></div>
+    <div class="follower-hero-value">${total != null ? Math.round(total).toLocaleString() : '-'}</div>
+    ${
+      delta != null
+        ? `<div class="hero-delta ${delta >= 0 ? 'pos' : 'neg'}">${delta >= 0 ? '+' : ''}${Math.round(delta).toLocaleString()} ${isPartial ? '지난달 같은 기간 대비' : '전월 대비'}</div>`
+        : '<div class="hero-empty">한 달 이상 데이터가 쌓이면 전월 대비 증감이 표시돼요.</div>'
+    }
+    <div class="hero-stat-meaning">${isPartial ? '월 단위 집계 (이번 달 진행 중)' : '월 단위 집계'}</div>
   `;
+}
+
+function renderViewsMonthlyHero(data) {
+  const pairs = data.posts.filter((p) => p.views != null).map((p) => [p.timestamp.slice(0, 10), p.views]);
+  renderMonthlyStatHero('viewsMonthlyHero', '조회수', '노출된 총 횟수', pairs);
+}
+
+function renderReachMonthlyHero(data) {
+  const pairs = data.history.filter((h) => h.reach != null).map((h) => [h.date, h.reach]);
+  renderMonthlyStatHero('reachMonthlyHero', '도달수', '본 사람 수(중복 제외)', pairs);
 }
 
 function renderDemographics(data) {
@@ -570,7 +589,8 @@ function renderQuickStats(posts) {
 function renderAll(data) {
   renderModeBadgeAndBanner(data);
   renderFollowerHero(data);
-  renderSideKpis(data);
+  renderViewsMonthlyHero(data);
+  renderReachMonthlyHero(data);
   renderPostCalendar(data.posts);
   renderQuickStats(data.posts);
   renderLatestPostHero(data.posts);
