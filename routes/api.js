@@ -54,6 +54,7 @@ function buildDashboardPayload(query = {}) {
     funnel: computeFunnel(history, posts),
     goal: computeGoalProgress(settings, allHistory),
     demographics: live ? store.loadDemographics() : DEMO_DEMOGRAPHICS,
+    chartNotes: store.loadChartNotes(),
     insights: generateInsights(posts, history, settings),
     categories: CATEGORIES,
     meta: { totalPosts: allPosts.length, filteredPosts: posts.length }
@@ -122,6 +123,16 @@ router.post('/posts/:id/tag', (req, res) => {
   res.json(updated);
 });
 
+// 추이 차트의 특정 시점(예: 튀는 지점)에 왜 그랬는지 메모를 남기는 기능.
+router.post('/chart-notes', (req, res) => {
+  const { chartKey, period, text } = req.body || {};
+  if (!chartKey || !period) {
+    return res.status(400).json({ error: 'chartKey와 period가 필요해요.' });
+  }
+  const notes = store.saveChartNote({ chartKey, period, text });
+  res.json({ chartNotes: notes });
+});
+
 router.post('/settings', (req, res) => {
   const { goalLabel, goalBaselineFollowers, goalTargetNet } = req.body || {};
   const partial = {
@@ -151,10 +162,13 @@ router.post('/admin/import', (req, res) => {
     return res.status(401).json({ error: '인증에 실패했어요.' });
   }
 
-  const { posts, history, demographics } = req.body || {};
+  const { posts, history, demographics, chartNotes } = req.body || {};
   if (Array.isArray(posts)) store.importPosts(posts);
   if (Array.isArray(history)) store.mergeHistorySnapshots(history);
   if (demographics) store.saveDemographics(demographics);
+  if (Array.isArray(chartNotes)) {
+    for (const note of chartNotes) store.saveChartNote(note);
+  }
 
   res.json({ ok: true, importedPosts: posts?.length ?? 0, importedHistory: history?.length ?? 0 });
 });

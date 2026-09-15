@@ -110,6 +110,7 @@
               <option value="daily">일별 (최근 1개월)</option>
             </select>
           </div>
+          <div class="panel-desc">게시물이 올라간 달 기준, 그 게시물들의 현재까지 누적 조회수 합계예요</div>
           <div class="chart-wrap"><canvas id="viewsOnlyChart"></canvas></div>
         </div>
         <div class="panel panel-half">
@@ -120,6 +121,7 @@
               <option value="daily">일별 (최근 1개월)</option>
             </select>
           </div>
+          <div class="panel-desc">계정을 본 서로 다른 사람 수(중복 제외)를 날짜별로 합산한 값이에요</div>
           <div class="chart-wrap"><canvas id="reachOnlyChart"></canvas></div>
         </div>
       </section>
@@ -176,6 +178,19 @@
   <div class="modal-card">
     <button id="postModalClose" class="modal-close" aria-label="닫기">✕</button>
     <div id="postModalBody"></div>
+  </div>
+</div>
+
+<div id="noteModal" class="modal-backdrop" hidden>
+  <div class="modal-card modal-card-sm">
+    <button id="noteModalClose" class="modal-close" aria-label="닫기">✕</button>
+    <div class="note-modal-title">메모 <span id="noteModalPeriod"></span></div>
+    <div id="noteModalValue" class="note-modal-value"></div>
+    <textarea id="noteModalText" class="note-modal-textarea" placeholder="이 시점에 무슨 일이 있었는지 적어두세요 (예: 채용설명회 진행, 이벤트 게시물 업로드 등)"></textarea>
+    <div class="note-modal-actions">
+      <button id="noteModalDelete" class="btn-ghost" hidden>삭제</button>
+      <button id="noteModalSave" class="btn-primary">저장</button>
+    </div>
   </div>
 </div>
 

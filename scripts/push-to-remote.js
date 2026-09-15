@@ -34,7 +34,8 @@ async function main() {
   const payload = {
     posts: readJson('posts.json', []),
     history: readJson('history.json', []),
-    demographics: readJson('demographics.json', null)
+    demographics: readJson('demographics.json', null),
+    chartNotes: readJson('chartNotes.json', [])
   };
 
   console.log(`${remoteUrl.replace(/\/$/, '')}/api/admin/import 로 전송 중...`);

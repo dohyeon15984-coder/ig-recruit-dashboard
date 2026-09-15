@@ -91,12 +91,12 @@ function renderMonthlyStatHero(elId, title, meaning, pairs) {
 
 function renderViewsMonthlyHero(data) {
   const pairs = data.posts.filter((p) => p.views != null).map((p) => [p.timestamp.slice(0, 10), p.views]);
-  renderMonthlyStatHero('viewsMonthlyHero', '조회수', '노출된 총 횟수', pairs);
+  renderMonthlyStatHero('viewsMonthlyHero', '조회수', '이번 달 노출된 총 횟수', pairs);
 }
 
 function renderReachMonthlyHero(data) {
   const pairs = data.history.filter((h) => h.reach != null).map((h) => [h.date, h.reach]);
-  renderMonthlyStatHero('reachMonthlyHero', '도달수', '본 사람 수(중복 제외)', pairs);
+  renderMonthlyStatHero('reachMonthlyHero', '도달수', '이번 달 본 사람 수(중복 제외)', pairs);
 }
 
 function renderDemographics(data) {
@@ -558,6 +558,23 @@ function renderQuickStats(posts) {
   `;
 }
 
+// 이 차트(chartKey)에 달린 메모들을 { period: text } 형태로 돌려준다.
+function notesByPeriodFor(chartKey) {
+  const map = {};
+  for (const n of state.data?.chartNotes || []) {
+    if (n.chartKey === chartKey) map[n.period] = n.text;
+  }
+  return map;
+}
+
+function makePointClickHandler(chartKey, chartLabel, instanceKey) {
+  return (index) => {
+    const series = trendChartSeries[instanceKey];
+    const point = series && series[index];
+    if (point) openNoteModal(chartKey, chartLabel, point);
+  };
+}
+
 function renderAll(data) {
   renderModeBadgeAndBanner(data);
   renderFollowerHero(data);
@@ -573,8 +590,18 @@ function renderAll(data) {
   renderRecentThumbs(data.posts);
   renderPostsTable(data);
   renderFollowerChart(monthlyBucketed(data.history, 'follower_count'));
-  renderViewsOnlyChart(data.posts, document.getElementById('viewsGranularity')?.value || 'monthly');
-  renderReachOnlyChart(data.history, document.getElementById('reachGranularity')?.value || 'monthly');
+  renderViewsOnlyChart(
+    data.posts,
+    document.getElementById('viewsGranularity')?.value || 'monthly',
+    notesByPeriodFor('views'),
+    makePointClickHandler('views', '조회수', 'views')
+  );
+  renderReachOnlyChart(
+    data.history,
+    document.getElementById('reachGranularity')?.value || 'monthly',
+    notesByPeriodFor('reach'),
+    makePointClickHandler('reach', '도달', 'reach')
+  );
   renderMediaTypeChart(data.posts);
   renderCategoryChart(data.posts);
 }
@@ -590,6 +617,61 @@ function setupSortableHeaders() {
       }
       renderPostsTable(state.data);
     });
+  });
+}
+
+let currentNoteContext = null;
+
+function formatPeriodLabel(period) {
+  if (period.length === 7) {
+    const [y, m] = period.split('-');
+    return `${y}년 ${Number(m)}월`;
+  }
+  const [y, m, d] = period.split('-');
+  return `${y}년 ${Number(m)}월 ${Number(d)}일`;
+}
+
+function openNoteModal(chartKey, chartLabel, point) {
+  currentNoteContext = { chartKey, period: point.date };
+  document.getElementById('noteModalPeriod').textContent = `· ${formatPeriodLabel(point.date)}`;
+  document.getElementById('noteModalValue').textContent = `${chartLabel} ${point.value.toLocaleString()}`;
+  const existing = notesByPeriodFor(chartKey)[point.date] || '';
+  const textarea = document.getElementById('noteModalText');
+  textarea.value = existing;
+  document.getElementById('noteModalDelete').hidden = !existing;
+  document.getElementById('noteModal').hidden = false;
+  textarea.focus();
+}
+
+function closeNoteModal() {
+  document.getElementById('noteModal').hidden = true;
+  currentNoteContext = null;
+}
+
+async function saveCurrentNote(text) {
+  if (!currentNoteContext) return;
+  await fetch('/api/chart-notes', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...currentNoteContext, text })
+  });
+  closeNoteModal();
+  await refresh();
+}
+
+function setupNoteModal() {
+  document.getElementById('noteModalClose').addEventListener('click', closeNoteModal);
+  document.getElementById('noteModal').addEventListener('click', (e) => {
+    if (e.target.id === 'noteModal') closeNoteModal();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !document.getElementById('noteModal').hidden) closeNoteModal();
+  });
+  document.getElementById('noteModalSave').addEventListener('click', () => {
+    saveCurrentNote(document.getElementById('noteModalText').value);
+  });
+  document.getElementById('noteModalDelete').addEventListener('click', () => {
+    saveCurrentNote('');
   });
 }
 
@@ -630,16 +712,19 @@ function setupTabs() {
 
 function setupTrendGranularityControls() {
   document.getElementById('viewsGranularity').addEventListener('change', (e) => {
-    if (state.data) renderViewsOnlyChart(state.data.posts, e.target.value);
+    if (state.data)
+      renderViewsOnlyChart(state.data.posts, e.target.value, notesByPeriodFor('views'), makePointClickHandler('views', '조회수', 'views'));
   });
   document.getElementById('reachGranularity').addEventListener('change', (e) => {
-    if (state.data) renderReachOnlyChart(state.data.history, e.target.value);
+    if (state.data)
+      renderReachOnlyChart(state.data.history, e.target.value, notesByPeriodFor('reach'), makePointClickHandler('reach', '도달', 'reach'));
   });
 }
 
 async function init() {
   setupSortableHeaders();
   setupModal();
+  setupNoteModal();
   setupTabs();
   setupTrendGranularityControls();
   await refresh();

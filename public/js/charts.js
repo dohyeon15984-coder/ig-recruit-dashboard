@@ -275,34 +275,78 @@ function buildTrendSeries(history, field, mode, aggType) {
 }
 
 const trendChartInstances = {};
+const trendChartSeries = {};
 
-function renderTrendChart(canvasId, instanceKey, series, mode, label, color) {
+// 메모가 달린 지점 위에 작은 점을 하나 더 찍어 "여기 기록 있음"을 표시해주는 플러그인.
+function makeNoteMarkerPlugin(getNotedIndexes) {
+  return {
+    id: 'noteMarker',
+    afterDatasetsDraw(chart) {
+      const notedIndexes = getNotedIndexes();
+      if (!notedIndexes || !notedIndexes.size) return;
+      const { ctx } = chart;
+      const meta = chart.getDatasetMeta(0);
+      meta.data.forEach((point, index) => {
+        if (!notedIndexes.has(index)) return;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(point.x + 7, point.y - 7, 5, 0, Math.PI * 2);
+        ctx.fillStyle = '#c8961e';
+        ctx.fill();
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = '#fff';
+        ctx.stroke();
+        ctx.fillStyle = '#fff';
+        ctx.font = "700 8px 'Pretendard', sans-serif";
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('!', point.x + 7, point.y - 6.5);
+        ctx.restore();
+      });
+    }
+  };
+}
+
+function renderTrendChart(canvasId, instanceKey, series, mode, label, color, notesByPeriod, onPointClick) {
   const ctx = document.getElementById(canvasId);
   if (trendChartInstances[instanceKey]) trendChartInstances[instanceKey].destroy();
+  trendChartSeries[instanceKey] = series;
+
+  const notedIndexes = new Set();
+  series.forEach((s, i) => {
+    if (notesByPeriod && notesByPeriod[s.date]) notedIndexes.add(i);
+  });
+
+  const plugins = [makeNoteMarkerPlugin(() => notedIndexes)];
+  if (mode === 'monthly') plugins.push(barValueLabelPlugin);
 
   trendChartInstances[instanceKey] = new Chart(ctx, {
-    type: 'line',
-    plugins: mode === 'monthly' ? [lineValueLabelPlugin] : [],
+    type: 'bar',
+    plugins,
     data: {
       labels: series.map((s) => (mode === 'daily' ? s.date.slice(5).replace('-', '/') : shortMonthLabel(s.date))),
       datasets: [
         {
           label,
           data: series.map((s) => s.value),
-          borderColor: color,
-          backgroundColor: color + '1f',
-          pointRadius: mode === 'daily' ? 2 : 3,
-          pointHoverRadius: 6,
-          borderWidth: 2,
-          fill: true,
-          tension: 0.25
+          backgroundColor: color + 'b3',
+          hoverBackgroundColor: color,
+          borderRadius: 5,
+          maxBarThickness: mode === 'daily' ? 16 : 46
         }
       ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      layout: { padding: { top: 20 } },
+      layout: { padding: { top: 20, right: 14 } },
+      onClick: (evt, elements) => {
+        if (!elements.length || !onPointClick) return;
+        onPointClick(elements[0].index);
+      },
+      onHover: (evt, elements) => {
+        if (evt.native && evt.native.target) evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+      },
       plugins: {
         legend: { display: false },
         tooltip: { callbacks: { label: (ctx) => `${label} ${ctx.parsed.y.toLocaleString()}` } }
@@ -315,9 +359,9 @@ function renderTrendChart(canvasId, instanceKey, series, mode, label, color) {
   });
 }
 
-function renderReachOnlyChart(history, mode) {
+function renderReachOnlyChart(history, mode, notesByPeriod, onPointClick) {
   const series = buildTrendSeries(history, 'reach', mode, 'sum');
-  renderTrendChart('reachOnlyChart', 'reach', series, mode, '도달', BRAND_TEAL);
+  renderTrendChart('reachOnlyChart', 'reach', series, mode, '도달', BRAND_TEAL, notesByPeriod, onPointClick);
 }
 
 // 계정 단위 일별 조회수 API가 없어서, 게시물별 조회수를 게시 시점(timestamp) 기준으로 합산해 대신 쓴다.
@@ -349,9 +393,9 @@ function dailySeriesSumFromPosts(posts, field, days = 30) {
   return series;
 }
 
-function renderViewsOnlyChart(posts, mode) {
+function renderViewsOnlyChart(posts, mode, notesByPeriod, onPointClick) {
   const series = mode === 'daily' ? dailySeriesSumFromPosts(posts, 'views') : monthlySeriesSumFromPosts(posts, 'views');
-  renderTrendChart('viewsOnlyChart', 'views', series, mode, '조회수', BRAND_TEAL);
+  renderTrendChart('viewsOnlyChart', 'views', series, mode, '조회수', BRAND_TEAL, notesByPeriod, onPointClick);
 }
 
 function renderMediaTypeChart(posts) {
