@@ -334,9 +334,6 @@ h2 { letter-spacing: -0.01em; }
 .hero-engagement-value { font-size: 15px; font-weight: 800; }
 .hero-engagement-note { font-size: 11px; opacity: 0.7; }
 
-.hero-chart-caption { font-size: 10.5px; opacity: 0.6; margin-top: 14px; }
-.hero-chart-caption + .hero-chart-wrap { margin-top: 4px; }
-
 .hero-title { font-size: 12.5px; font-weight: 700; opacity: 0.75; margin-bottom: 16px; letter-spacing: 0.01em; }
 .hero-title-note { font-weight: 500; opacity: 0.75; }
 .hero-empty { font-size: 13px; opacity: 0.7; }
@@ -364,7 +361,7 @@ h2 { letter-spacing: -0.01em; }
 .hero-delta.pos { color: #8fe3a6; }
 .hero-delta.neg { color: #ffb3b3; }
 
-.hero-chart-wrap { height: 64px; margin-top: 16px; }
+.hero-chart-wrap { height: 64px; margin-top: 30px; }
 
 .tab-bar {
   display: flex;

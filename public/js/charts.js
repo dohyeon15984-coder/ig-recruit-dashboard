@@ -55,7 +55,7 @@ const barValueLabelPlugin = {
       ctx.font = "600 9px 'Pretendard', sans-serif";
       ctx.textAlign = 'center';
       ctx.textBaseline = 'bottom';
-      ctx.fillText(value.toLocaleString(), bar.x, bar.y - 4);
+      ctx.fillText(value.toLocaleString(), bar.x, bar.y - 10);
       ctx.restore();
     });
   }
@@ -74,23 +74,39 @@ function renderReachSparkline(entries) {
       labels: entries.map((e) => e.date.slice(5).replace('-', '/')),
       datasets: [
         {
+          type: 'bar',
           data: entries.map((e) => e.reach),
-          backgroundColor: 'rgba(255,255,255,0.55)',
-          hoverBackgroundColor: '#ffffff',
+          backgroundColor: 'rgba(255,255,255,0.32)',
+          hoverBackgroundColor: 'rgba(255,255,255,0.5)',
           borderRadius: 3,
-          maxBarThickness: 16
+          maxBarThickness: 28,
+          order: 2
+        },
+        {
+          type: 'line',
+          data: entries.map((e) => e.reach),
+          borderColor: '#ffffff',
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          pointBackgroundColor: '#ffffff',
+          pointBorderColor: '#ffffff',
+          tension: 0.3,
+          order: 1
         }
       ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      layout: { padding: { top: 16 } },
+      layout: { padding: { top: 20 } },
       plugins: {
         legend: { display: false },
         tooltip: {
           enabled: true,
           displayColors: false,
+          filter: (item) => item.datasetIndex === 0,
           callbacks: { label: (ctx) => `도달 ${ctx.parsed.y.toLocaleString()}` }
         }
       },

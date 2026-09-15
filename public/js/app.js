@@ -292,7 +292,7 @@ function renderReachHero(history) {
   const cmp = last7VsPrior7(withReach);
 
   el.innerHTML = `
-    <div class="hero-title">도달 추이 (최근 7일 합계)</div>
+    <div class="hero-title">도달 추이 (최근 7일 합계) <span class="hero-title-note">— 게시물을 본 서로 다른 사람 수(중복 제외)</span></div>
     <div class="hero-stats-row">
       <div><div class="hero-stat-value">${cmp.lastSum.toLocaleString()}</div><div class="hero-stat-label">최근 7일 도달</div></div>
       ${
@@ -301,10 +301,10 @@ function renderReachHero(history) {
           : ''
       }
     </div>
-    <div class="hero-chart-caption">일별 도달 (최근 14일, 막대에 마우스를 올리면 날짜별 수치가 보여요)</div>
+    ${cmp.pct != null ? `<div class="hero-stat-meaning">이전 7일 ${cmp.priorSum.toLocaleString()} → 최근 7일 ${cmp.lastSum.toLocaleString()}</div>` : ''}
     <div class="hero-chart-wrap"><canvas id="reachHeroChart"></canvas></div>
   `;
-  renderReachSparkline(withReach.slice(-14));
+  renderReachSparkline(withReach.slice(-7));
 }
 
 function renderInsights(insights) {
