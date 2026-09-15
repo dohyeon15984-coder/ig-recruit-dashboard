@@ -458,12 +458,7 @@ function renderModeBadgeAndBanner(data) {
   badge.textContent = data.mode === 'live' ? '실서버 연동' : '데모 모드';
   badge.className = `badge ${data.mode}`;
 
-  const syncBtn = document.getElementById('syncBtn');
-  if (data.syncDisabled) {
-    syncBtn.disabled = true;
-    syncBtn.textContent = '동기화는 로컬 PC에서';
-    syncBtn.title = '이 서버는 Meta가 IP를 막아 직접 동기화가 안 돼요. 로컬 PC에서 동기화 후 npm run push-remote 로 데이터를 보내주세요.';
-  }
+  document.getElementById('syncBtn').hidden = Boolean(data.syncDisabled);
 
   const banner = document.getElementById('tokenBanner');
   if (data.mode === 'live' && data.tokenStatus) {
