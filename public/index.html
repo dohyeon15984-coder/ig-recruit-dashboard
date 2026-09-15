@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>동아일보 채용 인스타그램 대시보드</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <!-- TODO: public/assets/logo.png 파일을 넣으면 아래 img가 자동으로 로고를 표시해요 -->
+      <img src="assets/logo.png" alt="동아일보 채용" class="sidebar-logo" onerror="this.style.display='none'; this.nextElementSibling.hidden=false;">
+      <div class="sidebar-logo-placeholder" hidden>동아일보<br>채용</div>
+    </div>
+
+    <span id="modeBadge" class="badge">불러오는 중...</span>
+
+    <nav class="sidebar-filters" id="filterBar">
+      <div class="sidebar-widget">
+        <div id="taggingAlert"></div>
+      </div>
+
+      <div class="sidebar-widget">
+        <div class="filter-block-label">게시 활동 (최근 12주)</div>
+        <div id="postHeatmap" class="post-heatmap"></div>
+      </div>
+
+      <div class="sidebar-widget">
+        <div class="filter-block-label">빠른 요약</div>
+        <div id="quickStats" class="quick-stats"></div>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button id="syncBtn" class="btn-primary btn-block">지금 동기화</button>
+      <div id="tokenBanner" class="token-banner" hidden></div>
+    </div>
+  </aside>
+
+  <main class="content">
+
+    <section class="kpi-hero-row">
+      <div class="hero-card follower-hero" id="followerHero"></div>
+      <div class="side-kpi-grid" id="sideKpiGrid"></div>
+    </section>
+
+    <nav class="tab-bar" id="tabBar">
+      <button class="tab-btn is-active" data-tab="summary">① 요약</button>
+      <button class="tab-btn" data-tab="details">② 세부 데이터</button>
+      <button class="tab-btn" data-tab="posts">③ 전체 게시물</button>
+    </nav>
+
+    <div class="tab-panel" data-tab-panel="summary">
+      <section class="panel-row">
+        <div class="hero-card" id="latestPostHero"></div>
+        <div class="hero-card" id="reachHero"></div>
+      </section>
+
+      <section class="panel">
+        <h2>TOP 성과 게시물</h2>
+        <div class="top-posts-groups">
+          <div class="top-posts-group">
+            <div class="top-posts-group-title">❤️ 좋아요 TOP 3</div>
+            <div id="topPostsLikes" class="top-posts-mini"></div>
+          </div>
+          <div class="top-posts-group">
+            <div class="top-posts-group-title">🔖 저장 TOP 3</div>
+            <div id="topPostsSaves" class="top-posts-mini"></div>
+          </div>
+          <div class="top-posts-group">
+            <div class="top-posts-group-title">🔁 공유 TOP 3</div>
+            <div id="topPostsShares" class="top-posts-mini"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>AI 인사이트</h2>
+        <div id="insightList" class="insight-list"></div>
+      </section>
+    </div>
+
+    <div class="tab-panel" data-tab-panel="details" hidden>
+      <section class="panel" id="demographicsPanel" hidden>
+        <h2>팔로워 인구통계</h2>
+        <div class="demographics-grid">
+          <div class="demo-gender-col">
+            <div class="demo-subtitle">성별</div>
+            <div id="genderBadges" class="gender-badges"></div>
+          </div>
+          <div class="demo-age-col">
+            <div class="demo-subtitle">연령대</div>
+            <div class="chart-wrap chart-wrap-sm"><canvas id="ageChart"></canvas></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="reelsComparisonPanel" hidden>
+        <h2>릴스 vs 피드 게시물 비교</h2>
+        <div id="reelsCompareBody"></div>
+      </section>
+
+      <section class="panel-row">
+        <div class="panel panel-half">
+          <h2>팔로워 성장 추이 (월별)</h2>
+          <div class="chart-wrap"><canvas id="followerChart"></canvas></div>
+        </div>
+        <div class="panel panel-half">
+          <h2>도달 &amp; 프로필 조회수 추이</h2>
+          <div class="chart-wrap"><canvas id="reachChart"></canvas></div>
+        </div>
+      </section>
+
+      <section class="panel-row">
+        <div class="panel panel-half">
+          <h2>콘텐츠 유형별 참여율</h2>
+          <div class="chart-wrap"><canvas id="mediaTypeChart"></canvas></div>
+        </div>
+        <div class="panel panel-half">
+          <h2>카테고리별 참여율</h2>
+          <div class="chart-wrap"><canvas id="categoryChart"></canvas></div>
+        </div>
+      </section>
+    </div>
+
+    <div class="tab-panel" data-tab-panel="posts" hidden>
+      <section class="panel">
+        <h2>최근 업로드 미리보기</h2>
+        <div id="recentThumbs" class="recent-thumbs"></div>
+      </section>
+
+      <section class="panel">
+        <div class="table-header">
+          <h2>전체 게시물</h2>
+          <span id="postsMeta" class="posts-meta"></span>
+        </div>
+        <div class="table-wrap">
+          <table id="postsTable">
+            <thead>
+              <tr>
+                <th></th>
+                <th data-sort="timestamp">날짜 <span class="sort-arrow"></span></th>
+                <th>내용</th>
+                <th data-sort="media_type">유형 <span class="sort-arrow"></span></th>
+                <th>카테고리</th>
+                <th data-sort="like_count">좋아요 <span class="sort-arrow"></span></th>
+                <th data-sort="comments_count">댓글 <span class="sort-arrow"></span></th>
+                <th data-sort="saved">저장 <span class="sort-arrow"></span></th>
+                <th data-sort="shares">공유 <span class="sort-arrow"></span></th>
+                <th data-sort="reach">도달 <span class="sort-arrow"></span></th>
+              </tr>
+            </thead>
+            <tbody id="postsTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+  </main>
+</div>
+
+<div id="postModal" class="modal-backdrop" hidden>
+  <div class="modal-card">
+    <button id="postModalClose" class="modal-close" aria-label="닫기">✕</button>
+    <div id="postModalBody"></div>
+  </div>
+</div>
+
+<script src="js/charts.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
