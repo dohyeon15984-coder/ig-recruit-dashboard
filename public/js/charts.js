@@ -42,24 +42,31 @@ function groupAvgEngagement(posts, keyFn, labelFn) {
 let followerChartInstance, mediaTypeChartInstance, categoryChartInstance, ageChartInstance, reachSparklineInstance;
 
 // 막대 위에 값을 직접 표시해주는 미니 플러그인 (이 차트에만 적용, 전역 등록 아님)
-const barValueLabelPlugin = {
-  id: 'barValueLabel',
-  afterDatasetsDraw(chart) {
-    const { ctx } = chart;
-    const meta = chart.getDatasetMeta(0);
-    meta.data.forEach((bar, index) => {
-      const value = chart.data.datasets[0].data[index];
-      if (value == null) return;
-      ctx.save();
-      ctx.fillStyle = 'rgba(255,255,255,0.9)';
-      ctx.font = "700 12px 'Pretendard', sans-serif";
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'bottom';
-      ctx.fillText(value.toLocaleString(), bar.x, bar.y - 12);
-      ctx.restore();
-    });
-  }
-};
+function makeBarValueLabelPlugin(textColor) {
+  return {
+    id: 'barValueLabel',
+    afterDatasetsDraw(chart) {
+      const { ctx } = chart;
+      const meta = chart.getDatasetMeta(0);
+      meta.data.forEach((bar, index) => {
+        const value = chart.data.datasets[0].data[index];
+        if (value == null) return;
+        ctx.save();
+        ctx.fillStyle = textColor;
+        ctx.font = "700 12px 'Pretendard', sans-serif";
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(value.toLocaleString(), bar.x, bar.y - 12);
+        ctx.restore();
+      });
+    }
+  };
+}
+
+// 어두운 히어로 카드(짙은 틸 배경) 위에 쓰는 흰색 라벨.
+const barValueLabelPlugin = makeBarValueLabelPlugin('rgba(255,255,255,0.9)');
+// 밝은 흰 배경 패널 위에 쓰는 어두운 라벨.
+const barValueLabelPluginDark = makeBarValueLabelPlugin('#33403a');
 
 // 히어로 카드용 미니 스파크라인 (축/그리드 없이 추이만 보여줌)
 function renderReachSparkline(entries) {
@@ -318,7 +325,7 @@ function renderTrendChart(canvasId, instanceKey, series, mode, label, color, not
   });
 
   const plugins = [makeNoteMarkerPlugin(() => notedIndexes)];
-  if (mode === 'monthly') plugins.push(barValueLabelPlugin);
+  if (mode === 'monthly') plugins.push(barValueLabelPluginDark);
 
   trendChartInstances[instanceKey] = new Chart(ctx, {
     type: 'bar',
