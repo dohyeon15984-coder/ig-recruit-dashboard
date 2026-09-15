@@ -438,18 +438,23 @@ h2 { letter-spacing: -0.01em; }
 
 .recent-thumb-date { font-size: 10.5px; color: var(--text-mute); text-align: center; }
 
-.insight-list { display: flex; flex-direction: column; gap: 10px; }
+.insight-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+
+@media (max-width: 860px) {
+  .insight-list { grid-template-columns: 1fr; }
+}
 
 .insight-card {
   display: flex;
-  gap: 12px;
-  padding: 14px 16px;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
   border-radius: var(--radius-md);
   background: var(--surface-alt);
 }
 
 .insight-icon { font-size: 19px; line-height: 1; }
-.insight-title { font-weight: 700; margin-bottom: 3px; font-size: 13.5px; }
+.insight-title { font-weight: 700; margin-bottom: 4px; font-size: 13.5px; }
 .insight-desc { font-size: 12.5px; color: var(--text-mute); line-height: 1.55; }
 
 .top-posts-groups {
