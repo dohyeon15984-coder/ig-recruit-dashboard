@@ -6,7 +6,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "refresh-token": "node scripts/refresh-token.js"
+    "refresh-token": "node scripts/refresh-token.js",
+    "push-remote": "node scripts/push-to-remote.js"
   },
   "engines": {
     "node": ">=18"

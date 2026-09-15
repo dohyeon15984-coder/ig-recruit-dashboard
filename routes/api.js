@@ -130,4 +130,24 @@ router.post('/settings', (req, res) => {
   res.json(buildDashboardPayload());
 });
 
+// Meta가 Render 같은 공용 클라우드 호스팅의 IP를 차단해 배포 서버에서 직접 동기화가 안 되는 경우를 위한
+// 우회 경로: 로컬 PC(막히지 않은 IP)에서 동기화한 데이터를 배포 서버로 밀어넣는다.
+// scripts/push-to-remote.js 에서 사용 — ADMIN_SYNC_SECRET이 설정된 배포 환경에서만 동작한다.
+router.post('/admin/import', (req, res) => {
+  const secret = process.env.ADMIN_SYNC_SECRET;
+  if (!secret) {
+    return res.status(404).json({ error: '이 기능이 활성화되지 않았어요 (ADMIN_SYNC_SECRET 미설정).' });
+  }
+  if (req.get('x-admin-secret') !== secret) {
+    return res.status(401).json({ error: '인증에 실패했어요.' });
+  }
+
+  const { posts, history, demographics } = req.body || {};
+  if (Array.isArray(posts)) store.importPosts(posts);
+  if (Array.isArray(history)) store.mergeHistorySnapshots(history);
+  if (demographics) store.saveDemographics(demographics);
+
+  res.json({ ok: true, importedPosts: posts?.length ?? 0, importedHistory: history?.length ?? 0 });
+});
+
 module.exports = router;
