@@ -454,10 +454,6 @@ function escapeHtml(str) {
 }
 
 function renderModeBadgeAndBanner(data) {
-  const badge = document.getElementById('modeBadge');
-  badge.textContent = data.mode === 'live' ? '실서버 연동' : '데모 모드';
-  badge.className = `badge ${data.mode}`;
-
   document.getElementById('syncBtn').hidden = Boolean(data.syncDisabled);
 
   const banner = document.getElementById('tokenBanner');
@@ -473,45 +469,55 @@ function renderModeBadgeAndBanner(data) {
   }
 }
 
-// 카테고리 미지정 게시물이 있으면 알려주고, 태깅 화면(전체 게시물 탭)으로 바로 이동하는 버튼을 보여준다.
-function renderTaggingAlert(posts) {
-  const container = document.getElementById('taggingAlert');
-  if (!posts.length) {
-    container.innerHTML = '';
-    return;
-  }
-  const untagged = posts.filter((p) => !p.category).length;
-  if (untagged === 0) {
-    container.innerHTML = `<div class="tagging-alert ok">✅ 전체 태깅 완료</div>`;
-    return;
-  }
-  container.innerHTML = `
-    <div class="tagging-alert warn">⚠️ 카테고리 미지정 ${untagged}개</div>
-    <button type="button" id="goTagBtn" class="btn-ghost btn-block">태깅하러 가기 →</button>
-  `;
-  document.getElementById('goTagBtn').addEventListener('click', () => activateTab('posts'));
-}
+// 게시 활동을 실제 달력으로 보여준다 (게시물 있는 날 색칠, 이전/다음 달 이동 가능).
+const calendarState = { monthOffset: 0 };
+const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 
-// GitHub 잔디 그래프처럼 최근 게시 활동을 한눈에 보여준다 (날짜별 게시물 수 → 진하기).
-function renderPostHeatmap(posts) {
-  const container = document.getElementById('postHeatmap');
-  const DAYS = 84;
+function renderPostCalendar(posts) {
+  const container = document.getElementById('postCalendar');
   const counts = new Map();
   posts.forEach((p) => {
     const key = p.timestamp.slice(0, 10);
     counts.set(key, (counts.get(key) || 0) + 1);
   });
 
+  const base = new Date();
+  base.setDate(1);
+  base.setMonth(base.getMonth() + calendarState.monthOffset);
+  const year = base.getFullYear();
+  const month = base.getMonth();
+  const firstWeekday = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const todayKey = new Date().toISOString().slice(0, 10);
+
   const cells = [];
-  for (let i = DAYS - 1; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    const key = d.toISOString().slice(0, 10);
+  for (let i = 0; i < firstWeekday; i++) cells.push('<div class="cal-cell empty"></div>');
+  for (let d = 1; d <= daysInMonth; d++) {
+    const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     const count = counts.get(key) || 0;
     const level = count === 0 ? 0 : count === 1 ? 1 : count === 2 ? 2 : 3;
-    cells.push(`<div class="heatmap-cell level-${level}" title="${key} · 게시 ${count}건"></div>`);
+    const todayCls = key === todayKey ? ' today' : '';
+    cells.push(`<div class="cal-cell level-${level}${todayCls}" title="${key} · 게시 ${count}건">${d}</div>`);
   }
-  container.innerHTML = cells.join('');
+
+  container.innerHTML = `
+    <div class="cal-header">
+      <button type="button" id="calPrev" class="cal-nav">‹</button>
+      <span class="cal-title">${year}년 ${month + 1}월</span>
+      <button type="button" id="calNext" class="cal-nav">›</button>
+    </div>
+    <div class="cal-weekdays">${WEEKDAY_LABELS.map((d) => `<div>${d}</div>`).join('')}</div>
+    <div class="cal-grid">${cells.join('')}</div>
+  `;
+
+  document.getElementById('calPrev').addEventListener('click', () => {
+    calendarState.monthOffset--;
+    renderPostCalendar(state.data.posts);
+  });
+  document.getElementById('calNext').addEventListener('click', () => {
+    calendarState.monthOffset++;
+    renderPostCalendar(state.data.posts);
+  });
 }
 
 // 필터 대신 사이드바에 넣는 빠른 요약 지표.
@@ -556,8 +562,7 @@ function renderAll(data) {
   renderModeBadgeAndBanner(data);
   renderFollowerHero(data);
   renderSideKpis(data);
-  renderTaggingAlert(data.posts);
-  renderPostHeatmap(data.posts);
+  renderPostCalendar(data.posts);
   renderQuickStats(data.posts);
   renderLatestPostHero(data.posts);
   renderReachHero(data.history);
