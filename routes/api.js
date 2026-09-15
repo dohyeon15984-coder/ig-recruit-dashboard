@@ -43,6 +43,10 @@ function buildDashboardPayload(query = {}) {
   return {
     mode: live ? 'live' : 'demo',
     tokenStatus: live ? tokenStatus() : null,
+    // Render 등 일부 클라우드 호스팅 IP는 Meta가 막아서 배포 서버에서 직접 동기화가 안 될 수 있다.
+    // SYNC_DISABLED=true로 배포하면 프론트에서 동기화 버튼을 비활성화하고, 로컬 PC에서
+    // scripts/push-to-remote.js로 데이터를 보내도록 안내한다.
+    syncDisabled: process.env.SYNC_DISABLED === 'true',
     account,
     history,
     posts,
@@ -64,6 +68,11 @@ router.post('/sync', async (req, res) => {
   if (!isLiveMode()) {
     return res.status(400).json({
       error: '데모 모드에서는 동기화할 수 없어요. SETUP.md 안내대로 .env에 실제 토큰을 설정해주세요.'
+    });
+  }
+  if (process.env.SYNC_DISABLED === 'true') {
+    return res.status(400).json({
+      error: '이 서버에서는 동기화가 꺼져 있어요. 로컬 PC에서 동기화 후 npm run push-remote 로 데이터를 보내주세요.'
     });
   }
 
