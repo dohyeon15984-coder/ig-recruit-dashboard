@@ -345,7 +345,7 @@ h2 { letter-spacing: -0.01em; }
 .hero-pill-value { font-size: 17px; font-weight: 800; }
 .hero-pill-label { font-size: 9.5px; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.04em; }
 
-.hero-delta { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: rgba(255, 255, 255, 0.12); }
+.hero-delta { display: inline-block; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: rgba(255, 255, 255, 0.12); }
 .hero-delta.pos { color: #8fe3a6; }
 .hero-delta.neg { color: #ffb3b3; }
 
