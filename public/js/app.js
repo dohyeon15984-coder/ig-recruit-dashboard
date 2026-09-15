@@ -198,42 +198,6 @@ function renderTopPosts(posts) {
   renderMiniTopList('topPostsShares', posts, 'shares');
 }
 
-function renderReelsComparison(posts) {
-  const panel = document.getElementById('reelsComparisonPanel');
-  const reels = posts.filter((p) => p.is_reel);
-  const feed = posts.filter((p) => !p.is_reel);
-
-  if (!reels.length) {
-    panel.hidden = true;
-    return;
-  }
-  panel.hidden = false;
-
-  const avg = (arr, fn) => (arr.length ? arr.reduce((sum, p) => sum + fn(p), 0) / arr.length : 0);
-  const rows = [
-    { label: '평균 참여율', reel: avg(reels, engagementRate) * 100, feed: avg(feed, engagementRate) * 100, suffix: '%' },
-    { label: '평균 저장률', reel: avg(reels, saveRate) * 100, feed: avg(feed, saveRate) * 100, suffix: '%' },
-    { label: '평균 도달', reel: avg(reels, (p) => p.reach || 0), feed: avg(feed, (p) => p.reach || 0), suffix: '' }
-  ];
-
-  document.getElementById('reelsCompareBody').innerHTML = `
-    <div class="reels-compare-note">
-      릴스 ${reels.length}개 · 피드 게시물(이미지+카드뉴스) ${feed.length}개 기준
-      ${reels.length < 5 ? ' — 릴스 표본이 적어 참고용으로만 봐주세요.' : ''}
-    </div>
-    <table class="reels-compare-table">
-      <thead><tr><th></th><th>🎬 릴스</th><th>🖼️ 피드</th></tr></thead>
-      <tbody>
-        ${rows
-          .map(
-            (r) => `<tr><td>${r.label}</td><td>${r.reel.toFixed(1)}${r.suffix}</td><td>${r.feed.toFixed(1)}${r.suffix}</td></tr>`
-          )
-          .join('')}
-      </tbody>
-    </table>
-  `;
-}
-
 function renderRecentThumbs(posts) {
   const container = document.getElementById('recentThumbs');
   const recent = [...posts].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 5);
@@ -599,7 +563,6 @@ function renderAll(data) {
   renderLatestPostHero(data.posts);
   renderReachHero(data.history);
   renderDemographics(data);
-  renderReelsComparison(data.posts);
   renderInsights(data.insights);
   renderTopPosts(data.posts);
   renderRecentThumbs(data.posts);

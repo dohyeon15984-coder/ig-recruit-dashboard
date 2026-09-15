@@ -119,6 +119,27 @@ function renderReachSparkline(entries) {
 }
 
 const AGE_ORDER = ['13-17', '18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
+const BRAND_TEAL = '#22a488';
+
+// 가로 막대 끝에 값을 직접 표시해주는 미니 플러그인 (이 차트에만 적용).
+const horizontalBarValueLabelPlugin = {
+  id: 'horizontalBarValueLabel',
+  afterDatasetsDraw(chart) {
+    const { ctx } = chart;
+    const meta = chart.getDatasetMeta(0);
+    meta.data.forEach((bar, index) => {
+      const value = chart.data.datasets[0].data[index];
+      if (value == null) return;
+      ctx.save();
+      ctx.fillStyle = '#4b5a54';
+      ctx.font = "700 11px 'Pretendard', sans-serif";
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`${value}%`, bar.x + 6, bar.y);
+      ctx.restore();
+    });
+  }
+};
 
 function renderAgeChart(ageMap) {
   const ctx = document.getElementById('ageChart');
@@ -130,13 +151,14 @@ function renderAgeChart(ageMap) {
 
   ageChartInstance = new Chart(ctx, {
     type: 'bar',
+    plugins: [horizontalBarValueLabelPlugin],
     data: {
       labels: keys,
       datasets: [
         {
           label: '비율',
           data: keys.map((k) => +((ageMap[k] / total) * 100).toFixed(1)),
-          backgroundColor: '#4E79A7',
+          backgroundColor: BRAND_TEAL,
           borderRadius: 6,
           maxBarThickness: 18
         }
@@ -146,6 +168,7 @@ function renderAgeChart(ageMap) {
       responsive: true,
       maintainAspectRatio: false,
       indexAxis: 'y',
+      layout: { padding: { right: 30 } },
       plugins: { legend: { display: false } },
       scales: {
         x: { ticks: { callback: (v) => v + '%' }, grid: { color: '#eef0f5' } },
@@ -155,19 +178,45 @@ function renderAgeChart(ageMap) {
   });
 }
 
+// 날짜(YYYY-MM-DD 또는 YYYY-MM)를 "26.09"처럼 짧게 줄여 표시한다.
+function shortMonthLabel(dateStr) {
+  return dateStr.slice(2, 7).replace('-', '.');
+}
+
+// 라인 차트의 각 점 위에 값을 직접 표시해주는 미니 플러그인 (이 차트에만 적용).
+const lineValueLabelPlugin = {
+  id: 'lineValueLabel',
+  afterDatasetsDraw(chart) {
+    const { ctx } = chart;
+    const meta = chart.getDatasetMeta(0);
+    meta.data.forEach((point, index) => {
+      const value = chart.data.datasets[0].data[index];
+      if (value == null) return;
+      ctx.save();
+      ctx.fillStyle = '#33403a';
+      ctx.font = "700 11px 'Pretendard', sans-serif";
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(value.toLocaleString(), point.x, point.y - 8);
+      ctx.restore();
+    });
+  }
+};
+
 function renderFollowerChart(history) {
   const ctx = document.getElementById('followerChart');
   if (followerChartInstance) followerChartInstance.destroy();
   followerChartInstance = new Chart(ctx, {
     type: 'line',
+    plugins: [lineValueLabelPlugin],
     data: {
-      labels: history.map((h) => h.date.slice(0, 7)),
+      labels: history.map((h) => shortMonthLabel(h.date)),
       datasets: [
         {
           label: '팔로워 수',
           data: history.map((h) => h.follower_count ?? null),
-          borderColor: '#4E79A7',
-          backgroundColor: 'rgba(78,121,167,0.10)',
+          borderColor: BRAND_TEAL,
+          backgroundColor: 'rgba(34,164,136,0.12)',
           pointRadius: 3,
           pointHoverRadius: 6,
           borderWidth: 2,
@@ -179,6 +228,7 @@ function renderFollowerChart(history) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      layout: { padding: { top: 20 } },
       plugins: { legend: { display: false } },
       scales: {
         y: { beginAtZero: false, grid: { color: '#eef0f5' } },
