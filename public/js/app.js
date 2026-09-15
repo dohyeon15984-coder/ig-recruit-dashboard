@@ -248,17 +248,18 @@ function renderLatestPostHero(posts) {
     <div class="hero-body-row">
       <div class="hero-content">
         <div class="hero-stats-row">
-          <div><div class="hero-stat-value">${(latest.views || latest.reach || 0).toLocaleString()}</div><div class="hero-stat-label">조회수</div></div>
-          <div><div class="hero-stat-value">${(latest.like_count || 0).toLocaleString()}</div><div class="hero-stat-label">좋아요</div></div>
-          <div><div class="hero-stat-value">${(latest.comments_count || 0).toLocaleString()}</div><div class="hero-stat-label">댓글</div></div>
+          <div><div class="hero-stat-value">${(latest.views || 0).toLocaleString()}</div><div class="hero-stat-label">조회수</div><div class="hero-stat-meaning">노출된 총 횟수</div></div>
+          <div><div class="hero-stat-value">${(latest.reach || 0).toLocaleString()}</div><div class="hero-stat-label">도달</div><div class="hero-stat-meaning">본 사람 수(중복 제외)</div></div>
+        </div>
+        <div class="hero-stats-row hero-stats-row-secondary">
+          <div><div class="hero-stat-value-sm">${(latest.like_count || 0).toLocaleString()}</div><div class="hero-stat-label">좋아요</div></div>
+          <div><div class="hero-stat-value-sm">${(latest.saved || 0).toLocaleString()}</div><div class="hero-stat-label">저장</div></div>
+          <div><div class="hero-stat-value-sm">${(latest.shares || 0).toLocaleString()}</div><div class="hero-stat-label">공유</div></div>
+          <div><div class="hero-stat-value-sm">${(latest.comments_count || 0).toLocaleString()}</div><div class="hero-stat-label">댓글</div></div>
         </div>
         <div class="hero-engagement-row">
           <span class="hero-engagement-value">참여율 ${(er * 100).toFixed(1)}%</span>
           <span class="hero-engagement-note">— 도달 대비 얼마나 반응(좋아요·댓글·저장·공유)했는지 보여줘요</span>
-        </div>
-        <div class="hero-stats-row hero-stats-row-secondary">
-          <div><div class="hero-stat-value-sm">${(latest.saved || 0).toLocaleString()}</div><div class="hero-stat-label">저장</div></div>
-          <div><div class="hero-stat-value-sm">${(latest.shares || 0).toLocaleString()}</div><div class="hero-stat-label">공유</div></div>
         </div>
       </div>
       ${thumbHtml(latest, 'hero-post-thumb')}
