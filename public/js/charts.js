@@ -41,6 +41,26 @@ function groupAvgEngagement(posts, keyFn, labelFn) {
 
 let followerChartInstance, reachChartInstance, mediaTypeChartInstance, categoryChartInstance, ageChartInstance, reachSparklineInstance;
 
+// 막대 위에 값을 직접 표시해주는 미니 플러그인 (이 차트에만 적용, 전역 등록 아님)
+const barValueLabelPlugin = {
+  id: 'barValueLabel',
+  afterDatasetsDraw(chart) {
+    const { ctx } = chart;
+    const meta = chart.getDatasetMeta(0);
+    meta.data.forEach((bar, index) => {
+      const value = chart.data.datasets[0].data[index];
+      if (value == null) return;
+      ctx.save();
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.font = "600 9px 'Pretendard', sans-serif";
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(value.toLocaleString(), bar.x, bar.y - 4);
+      ctx.restore();
+    });
+  }
+};
+
 // 히어로 카드용 미니 스파크라인 (축/그리드 없이 추이만 보여줌)
 function renderReachSparkline(entries) {
   const ctx = document.getElementById('reachHeroChart');
@@ -49,6 +69,7 @@ function renderReachSparkline(entries) {
 
   reachSparklineInstance = new Chart(ctx, {
     type: 'bar',
+    plugins: [barValueLabelPlugin],
     data: {
       labels: entries.map((e) => e.date.slice(5).replace('-', '/')),
       datasets: [
@@ -64,6 +85,7 @@ function renderReachSparkline(entries) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      layout: { padding: { top: 16 } },
       plugins: {
         legend: { display: false },
         tooltip: {

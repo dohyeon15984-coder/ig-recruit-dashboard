@@ -310,8 +310,7 @@ h2 { letter-spacing: -0.01em; }
   width: auto;
   max-width: 45%;
   object-fit: contain;
-  opacity: 0.14;
-  filter: brightness(0) invert(1);
+  opacity: 0.35;
   pointer-events: none;
 }
 
@@ -330,11 +329,14 @@ h2 { letter-spacing: -0.01em; }
 .hero-chart-caption + .hero-chart-wrap { margin-top: 4px; }
 
 .hero-title { font-size: 12.5px; font-weight: 700; opacity: 0.75; margin-bottom: 16px; letter-spacing: 0.01em; }
+.hero-title-note { font-weight: 500; opacity: 0.75; }
 .hero-empty { font-size: 13px; opacity: 0.7; }
 
 .hero-stats-row { display: flex; gap: 26px; align-items: center; flex-wrap: wrap; }
+.hero-stats-row-secondary { gap: 22px; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.14); }
 
 .hero-stat-value { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
+.hero-stat-value-sm { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
 .hero-stat-label { font-size: 11px; opacity: 0.7; margin-top: 3px; }
 
 .hero-pill {

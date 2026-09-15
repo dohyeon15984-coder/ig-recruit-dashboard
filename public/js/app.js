@@ -244,8 +244,8 @@ function renderLatestPostHero(posts) {
   const er = engagementRate(latest);
 
   el.innerHTML = `
-    <img src="assets/logo.png" class="hero-watermark" alt="" onerror="this.remove()">
-    <div class="hero-title">최근 게시물 성과 · ${new Date(latest.timestamp).toLocaleDateString('ko-KR')}</div>
+    <img src="assets/watermark.png" class="hero-watermark" alt="" onerror="this.remove()">
+    <div class="hero-title">최신 게시물 성과 · ${new Date(latest.timestamp).toLocaleDateString('ko-KR')} 게시 <span class="hero-title-note">(가장 최근에 올린 게시물 1건 기준)</span></div>
     <div class="hero-stats-row">
       <div><div class="hero-stat-value">${(latest.views || latest.reach || 0).toLocaleString()}</div><div class="hero-stat-label">조회수</div></div>
       <div><div class="hero-stat-value">${(latest.like_count || 0).toLocaleString()}</div><div class="hero-stat-label">좋아요</div></div>
@@ -254,6 +254,10 @@ function renderLatestPostHero(posts) {
     <div class="hero-engagement-row">
       <span class="hero-engagement-value">참여율 ${(er * 100).toFixed(1)}%</span>
       <span class="hero-engagement-note">— 도달 대비 얼마나 반응(좋아요·댓글·저장·공유)했는지 보여줘요</span>
+    </div>
+    <div class="hero-stats-row hero-stats-row-secondary">
+      <div><div class="hero-stat-value-sm">${(latest.saved || 0).toLocaleString()}</div><div class="hero-stat-label">저장</div></div>
+      <div><div class="hero-stat-value-sm">${(latest.shares || 0).toLocaleString()}</div><div class="hero-stat-label">공유</div></div>
     </div>
   `;
 }
@@ -282,7 +286,6 @@ function renderReachHero(history) {
   const cmp = last7VsPrior7(withReach);
 
   el.innerHTML = `
-    <img src="assets/logo.png" class="hero-watermark" alt="" onerror="this.remove()">
     <div class="hero-title">도달 추이 (최근 7일 합계)</div>
     <div class="hero-stats-row">
       <div><div class="hero-stat-value">${cmp.lastSum.toLocaleString()}</div><div class="hero-stat-label">최근 7일 도달</div></div>
