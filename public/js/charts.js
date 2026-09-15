@@ -39,7 +39,7 @@ function groupAvgEngagement(posts, keyFn, labelFn) {
     .sort((a, b) => b.value - a.value);
 }
 
-let followerChartInstance, reachChartInstance, mediaTypeChartInstance, categoryChartInstance, ageChartInstance, reachSparklineInstance;
+let followerChartInstance, mediaTypeChartInstance, categoryChartInstance, ageChartInstance, reachSparklineInstance;
 
 // 막대 위에 값을 직접 표시해주는 미니 플러그인 (이 차트에만 적용, 전역 등록 아님)
 const barValueLabelPlugin = {
@@ -238,55 +238,91 @@ function renderFollowerChart(history) {
   });
 }
 
-function renderReachChart(history) {
-  const ctx = document.getElementById('reachChart');
-  if (reachChartInstance) reachChartInstance.destroy();
-  reachChartInstance = new Chart(ctx, {
+// 일별 이력을 월 단위로 "합산"한 시계열로 만든다 (도달처럼 매일 새로 발생하는 지표용).
+function monthlySeriesSum(history, field) {
+  const byMonth = new Map();
+  for (const h of history) {
+    if (h[field] == null) continue;
+    const month = h.date.slice(0, 7);
+    byMonth.set(month, (byMonth.get(month) || 0) + h[field]);
+  }
+  return [...byMonth.entries()].map(([date, value]) => ({ date, value })).sort((a, b) => a.date.localeCompare(b.date));
+}
+
+// 일별 이력을 월 단위로 묶어 "그 달의 마지막 값"을 취하는 시계열로 만든다 (프로필 조회수처럼 스냅샷 성격인 지표용).
+function monthlySeriesLatest(history, field) {
+  const byMonth = new Map();
+  for (const h of history) {
+    if (h[field] == null) continue;
+    const month = h.date.slice(0, 7);
+    const existing = byMonth.get(month);
+    if (!existing || h.date > existing.date) byMonth.set(month, h);
+  }
+  return [...byMonth.values()]
+    .map((h) => ({ date: h.date.slice(0, 7), value: h[field] }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function buildTrendSeries(history, field, mode, aggType) {
+  if (mode === 'daily') {
+    return history
+      .filter((h) => h[field] != null)
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(-30)
+      .map((h) => ({ date: h.date, value: h[field] }));
+  }
+  return aggType === 'sum' ? monthlySeriesSum(history, field) : monthlySeriesLatest(history, field);
+}
+
+const trendChartInstances = {};
+
+function renderTrendChart(canvasId, instanceKey, series, mode, label, color) {
+  const ctx = document.getElementById(canvasId);
+  if (trendChartInstances[instanceKey]) trendChartInstances[instanceKey].destroy();
+
+  trendChartInstances[instanceKey] = new Chart(ctx, {
     type: 'line',
+    plugins: mode === 'monthly' ? [lineValueLabelPlugin] : [],
     data: {
-      labels: history.map((h) => h.date),
+      labels: series.map((s) => (mode === 'daily' ? s.date.slice(5).replace('-', '/') : shortMonthLabel(s.date))),
       datasets: [
         {
-          label: '도달',
-          data: history.map((h) => h.reach ?? null),
-          borderColor: '#4E79A7',
-          backgroundColor: 'transparent',
-          pointRadius: 2,
-          pointHoverRadius: 5,
+          label,
+          data: series.map((s) => s.value),
+          borderColor: color,
+          backgroundColor: color + '1f',
+          pointRadius: mode === 'daily' ? 2 : 3,
+          pointHoverRadius: 6,
           borderWidth: 2,
-          tension: 0.25,
-          yAxisID: 'y'
-        },
-        {
-          label: '프로필 조회수',
-          data: history.map((h) => h.profile_views ?? null),
-          borderColor: '#F28E2B',
-          backgroundColor: 'transparent',
-          pointRadius: 2,
-          pointHoverRadius: 5,
-          borderWidth: 2,
-          tension: 0.25,
-          yAxisID: 'y1'
+          fill: true,
+          tension: 0.25
         }
       ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      layout: { padding: { top: 20 } },
       plugins: {
-        legend: {
-          display: true,
-          position: 'bottom',
-          labels: { usePointStyle: true, pointStyle: 'circle', boxWidth: 7, padding: 14 }
-        }
+        legend: { display: false },
+        tooltip: { callbacks: { label: (ctx) => `${label} ${ctx.parsed.y.toLocaleString()}` } }
       },
       scales: {
-        y: { position: 'left', beginAtZero: false, grid: { color: '#eef0f5' }, title: { display: true, text: '도달' } },
-        y1: { position: 'right', beginAtZero: false, grid: { drawOnChartArea: false }, title: { display: true, text: '프로필 조회수' } },
-        x: { grid: { display: false } }
+        y: { beginAtZero: false, grid: { color: '#eef0f5' } },
+        x: { grid: { display: false }, ticks: { maxRotation: mode === 'daily' ? 45 : 0 } }
       }
     }
   });
+}
+
+function renderReachOnlyChart(history, mode) {
+  const series = buildTrendSeries(history, 'reach', mode, 'sum');
+  renderTrendChart('reachOnlyChart', 'reach', series, mode, '도달', BRAND_TEAL);
+}
+
+function renderProfileViewsChart(history, mode) {
+  const series = buildTrendSeries(history, 'profile_views', mode, 'latest');
+  renderTrendChart('profileViewsChart', 'profileViews', series, mode, '프로필 조회수', '#0f766e');
 }
 
 function renderMediaTypeChart(posts) {

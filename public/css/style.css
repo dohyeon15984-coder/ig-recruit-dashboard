@@ -212,6 +212,20 @@ h2 { letter-spacing: -0.01em; }
   color: var(--text);
 }
 
+.panel-header-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.panel-header-row h2 { margin: 0; }
+
+.granularity-select {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-mute);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 12px;
+  background: #fff;
+  cursor: pointer;
+}
+
 .panel-row {
   display: grid;
   grid-template-columns: 1fr 1fr;

@@ -568,7 +568,8 @@ function renderAll(data) {
   renderRecentThumbs(data.posts);
   renderPostsTable(data);
   renderFollowerChart(monthlyBucketed(data.history, 'follower_count'));
-  renderReachChart(data.history);
+  renderReachOnlyChart(data.history, document.getElementById('reachGranularity')?.value || 'monthly');
+  renderProfileViewsChart(data.history, document.getElementById('profileViewsGranularity')?.value || 'monthly');
   renderMediaTypeChart(data.posts);
   renderCategoryChart(data.posts);
 }
@@ -605,9 +606,14 @@ function activateTab(tab) {
   // 차트가 들어있는 탭을 새로 보여줄 때 Chart.js가 숨겨진 캔버스 크기를 못 읽어
   // 찌그러지는 문제가 있어, 탭 전환 직후 관련 차트를 다시 리사이즈해준다.
   if (tab === 'details') {
-    [followerChartInstance, reachChartInstance, mediaTypeChartInstance, categoryChartInstance, ageChartInstance].forEach(
-      (chart) => chart && chart.resize()
-    );
+    [
+      followerChartInstance,
+      trendChartInstances.reach,
+      trendChartInstances.profileViews,
+      mediaTypeChartInstance,
+      categoryChartInstance,
+      ageChartInstance
+    ].forEach((chart) => chart && chart.resize());
   }
 }
 
@@ -617,10 +623,20 @@ function setupTabs() {
   });
 }
 
+function setupTrendGranularityControls() {
+  document.getElementById('reachGranularity').addEventListener('change', (e) => {
+    if (state.data) renderReachOnlyChart(state.data.history, e.target.value);
+  });
+  document.getElementById('profileViewsGranularity').addEventListener('change', (e) => {
+    if (state.data) renderProfileViewsChart(state.data.history, e.target.value);
+  });
+}
+
 async function init() {
   setupSortableHeaders();
   setupModal();
   setupTabs();
+  setupTrendGranularityControls();
   await refresh();
 
   document.getElementById('syncBtn').addEventListener('click', async () => {
