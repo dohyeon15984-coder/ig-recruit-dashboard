@@ -320,9 +320,38 @@ function renderReachOnlyChart(history, mode) {
   renderTrendChart('reachOnlyChart', 'reach', series, mode, '도달', BRAND_TEAL);
 }
 
-function renderProfileViewsChart(history, mode) {
-  const series = buildTrendSeries(history, 'profile_views', mode, 'latest');
-  renderTrendChart('profileViewsChart', 'profileViews', series, mode, '프로필 조회수', '#0f766e');
+// 계정 단위 일별 조회수 API가 없어서, 게시물별 조회수를 게시 시점(timestamp) 기준으로 합산해 대신 쓴다.
+function monthlySeriesSumFromPosts(posts, field) {
+  const byMonth = new Map();
+  for (const p of posts) {
+    if (p[field] == null) continue;
+    const month = p.timestamp.slice(0, 7);
+    byMonth.set(month, (byMonth.get(month) || 0) + p[field]);
+  }
+  return [...byMonth.entries()].map(([date, value]) => ({ date, value })).sort((a, b) => a.date.localeCompare(b.date));
+}
+
+// 최근 N일을 하루도 빠짐없이 나열하고, 게시물이 없는 날은 0으로 채운다.
+function dailySeriesSumFromPosts(posts, field, days = 30) {
+  const byDate = new Map();
+  for (const p of posts) {
+    if (p[field] == null) continue;
+    const date = p.timestamp.slice(0, 10);
+    byDate.set(date, (byDate.get(date) || 0) + p[field]);
+  }
+  const series = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    series.push({ date: dateStr, value: byDate.get(dateStr) || 0 });
+  }
+  return series;
+}
+
+function renderViewsOnlyChart(posts, mode) {
+  const series = mode === 'daily' ? dailySeriesSumFromPosts(posts, 'views') : monthlySeriesSumFromPosts(posts, 'views');
+  renderTrendChart('viewsOnlyChart', 'views', series, mode, '조회수', BRAND_TEAL);
 }
 
 function renderMediaTypeChart(posts) {

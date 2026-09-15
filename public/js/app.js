@@ -36,8 +36,13 @@ function monthlySumFairCompare(pairs) {
   const lastDay = Math.max(...currentRows.map(([d]) => Number(d.slice(8, 10))));
   const priorRows = sorted.filter(([d]) => d.slice(0, 7) === priorMonth);
   const priorMonthLastDay = Math.max(...priorRows.map(([d]) => Number(d.slice(8, 10))));
-  const priorComparable = priorRows.filter(([d]) => Number(d.slice(8, 10)) <= lastDay).reduce((sum, [, v]) => sum + v, 0);
+  const priorRowsInRange = priorRows.filter(([d]) => Number(d.slice(8, 10)) <= lastDay);
 
+  // 지난달 같은 기간에 데이터가 아예 없으면(예: 동기화가 그 기간엔 없었음) 0과 비교하는 셈이 되어
+  // "+100%"처럼 실제와 다른 증감으로 보일 수 있다 — 이 경우 비교 자체를 하지 않는다.
+  if (!priorRowsInRange.length) return { total, delta: null, isPartial: lastDay < priorMonthLastDay };
+
+  const priorComparable = priorRowsInRange.reduce((sum, [, v]) => sum + v, 0);
   return { total, delta: total - priorComparable, isPartial: lastDay < priorMonthLastDay };
 }
 
@@ -568,8 +573,8 @@ function renderAll(data) {
   renderRecentThumbs(data.posts);
   renderPostsTable(data);
   renderFollowerChart(monthlyBucketed(data.history, 'follower_count'));
+  renderViewsOnlyChart(data.posts, document.getElementById('viewsGranularity')?.value || 'monthly');
   renderReachOnlyChart(data.history, document.getElementById('reachGranularity')?.value || 'monthly');
-  renderProfileViewsChart(data.history, document.getElementById('profileViewsGranularity')?.value || 'monthly');
   renderMediaTypeChart(data.posts);
   renderCategoryChart(data.posts);
 }
@@ -608,8 +613,8 @@ function activateTab(tab) {
   if (tab === 'details') {
     [
       followerChartInstance,
+      trendChartInstances.views,
       trendChartInstances.reach,
-      trendChartInstances.profileViews,
       mediaTypeChartInstance,
       categoryChartInstance,
       ageChartInstance
@@ -624,11 +629,11 @@ function setupTabs() {
 }
 
 function setupTrendGranularityControls() {
+  document.getElementById('viewsGranularity').addEventListener('change', (e) => {
+    if (state.data) renderViewsOnlyChart(state.data.posts, e.target.value);
+  });
   document.getElementById('reachGranularity').addEventListener('change', (e) => {
     if (state.data) renderReachOnlyChart(state.data.history, e.target.value);
-  });
-  document.getElementById('profileViewsGranularity').addEventListener('change', (e) => {
-    if (state.data) renderProfileViewsChart(state.data.history, e.target.value);
   });
 }
 

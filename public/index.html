@@ -104,6 +104,16 @@
       <section class="panel-row">
         <div class="panel panel-half">
           <div class="panel-header-row">
+            <h2>조회수 추이</h2>
+            <select id="viewsGranularity" class="granularity-select">
+              <option value="monthly">월별</option>
+              <option value="daily">일별 (최근 1개월)</option>
+            </select>
+          </div>
+          <div class="chart-wrap"><canvas id="viewsOnlyChart"></canvas></div>
+        </div>
+        <div class="panel panel-half">
+          <div class="panel-header-row">
             <h2>도달 추이</h2>
             <select id="reachGranularity" class="granularity-select">
               <option value="monthly">월별</option>
@@ -111,16 +121,6 @@
             </select>
           </div>
           <div class="chart-wrap"><canvas id="reachOnlyChart"></canvas></div>
-        </div>
-        <div class="panel panel-half">
-          <div class="panel-header-row">
-            <h2>프로필 조회수 추이</h2>
-            <select id="profileViewsGranularity" class="granularity-select">
-              <option value="monthly">월별</option>
-              <option value="daily">일별 (최근 1개월)</option>
-            </select>
-          </div>
-          <div class="chart-wrap"><canvas id="profileViewsChart"></canvas></div>
         </div>
       </section>
 
