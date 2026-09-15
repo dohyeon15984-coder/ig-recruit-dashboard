@@ -327,6 +327,10 @@ function renderTrendChart(canvasId, instanceKey, series, mode, label, color, not
   const plugins = [makeNoteMarkerPlugin(() => notedIndexes)];
   if (mode === 'monthly') plugins.push(barValueLabelPluginDark);
 
+  // 가장 높은 막대가 그래프 맨 위 끝까지 닿으면 그 위에 그리는 값 라벨이 카드 밖으로 잘려서,
+  // y축 최댓값을 실제 데이터보다 넉넉하게 잡아 라벨 자리를 남겨둔다.
+  const maxValue = Math.max(0, ...series.map((s) => s.value).filter((v) => v != null));
+
   trendChartInstances[instanceKey] = new Chart(ctx, {
     type: 'bar',
     plugins,
@@ -359,7 +363,7 @@ function renderTrendChart(canvasId, instanceKey, series, mode, label, color, not
         tooltip: { callbacks: { label: (ctx) => `${label} ${ctx.parsed.y.toLocaleString()}` } }
       },
       scales: {
-        y: { beginAtZero: false, grid: { color: '#eef0f5' } },
+        y: { beginAtZero: false, suggestedMax: maxValue * 1.18, grid: { color: '#eef0f5' } },
         x: { grid: { display: false }, ticks: { maxRotation: mode === 'daily' ? 45 : 0 } }
       }
     }
