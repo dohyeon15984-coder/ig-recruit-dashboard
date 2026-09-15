@@ -530,30 +530,14 @@ function renderQuickStats(posts) {
   const sorted = [...posts].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
   const daysSinceLast = Math.floor((Date.now() - new Date(sorted[0].timestamp).getTime()) / (24 * 60 * 60 * 1000));
 
-  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-  const thisWeekCount = posts.filter((p) => new Date(p.timestamp).getTime() >= weekAgo).length;
-
-  const byCategory = new Map();
-  posts
-    .filter((p) => p.category)
-    .forEach((p) => {
-      if (!byCategory.has(p.category)) byCategory.set(p.category, []);
-      byCategory.get(p.category).push(p);
-    });
-  let topCategory = '-';
-  let topRate = -1;
-  byCategory.forEach((arr, cat) => {
-    const rate = arr.reduce((sum, p) => sum + engagementRate(p), 0) / arr.length;
-    if (rate > topRate) {
-      topRate = rate;
-      topCategory = cat;
-    }
-  });
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+  const thisMonthCount = posts.filter((p) => new Date(p.timestamp).getTime() >= monthStart.getTime()).length;
 
   container.innerHTML = `
     <div class="quick-stat-row"><span>마지막 게시</span><strong>${daysSinceLast === 0 ? '오늘' : daysSinceLast + '일 전'}</strong></div>
-    <div class="quick-stat-row"><span>이번 주 게시</span><strong>${thisWeekCount}건</strong></div>
-    <div class="quick-stat-row"><span>최다반응 카테고리</span><strong>${escapeHtml(topCategory)}</strong></div>
+    <div class="quick-stat-row"><span>이번 달 게시</span><strong>${thisMonthCount}건</strong></div>
   `;
 }
 
