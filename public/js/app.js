@@ -84,7 +84,6 @@ function renderMonthlyStatHero(elId, title, meaning, pairs) {
           : ''
       }
     </div>
-    ${delta == null ? '<div class="hero-empty">한 달 이상 데이터가 쌓이면 전월 대비 증감이 표시돼요.</div>' : ''}
     <div class="hero-stat-meaning">${isPartial ? '월 단위 집계 (이번 달 진행 중)' : '월 단위 집계'}</div>
   `;
 }
