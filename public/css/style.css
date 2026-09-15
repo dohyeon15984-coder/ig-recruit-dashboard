@@ -227,6 +227,7 @@ h2 { letter-spacing: -0.01em; }
 .panel-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  align-items: start;
   gap: 16px;
 }
 
@@ -291,11 +292,10 @@ h2 { letter-spacing: -0.01em; }
   position: relative;
   overflow: hidden;
   border-radius: var(--radius-lg);
-  padding: 22px 24px;
+  padding: 22px 24px 18px;
   background: linear-gradient(135deg, #041713 0%, #0b3d34 45%, #1f8a74 100%);
   color: #fff;
   box-shadow: var(--shadow-card);
-  min-height: 150px;
 }
 
 .hero-card > * { position: relative; z-index: 1; }
@@ -361,7 +361,7 @@ h2 { letter-spacing: -0.01em; }
 .hero-delta.pos { color: #8fe3a6; }
 .hero-delta.neg { color: #ffb3b3; }
 
-.hero-chart-wrap { height: 64px; margin-top: 30px; }
+.hero-chart-wrap { height: 74px; margin-top: 30px; }
 
 .tab-bar {
   display: flex;

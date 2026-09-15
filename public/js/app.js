@@ -244,9 +244,9 @@ function renderLatestPostHero(posts) {
   const er = engagementRate(latest);
 
   el.innerHTML = `
-    <div class="hero-title">최신 게시물 성과 · ${new Date(latest.timestamp).toLocaleDateString('ko-KR')} 게시 <span class="hero-title-note">(가장 최근에 올린 게시물 1건 기준)</span></div>
     <div class="hero-body-row">
       <div class="hero-content">
+        <div class="hero-title">최신 게시물 성과 · ${new Date(latest.timestamp).toLocaleDateString('ko-KR')} 게시 <span class="hero-title-note">(가장 최근에 올린 게시물 1건 기준)</span></div>
         <div class="hero-stats-row">
           <div><div class="hero-stat-value">${(latest.views || 0).toLocaleString()}</div><div class="hero-stat-label">조회수</div><div class="hero-stat-meaning">노출된 총 횟수</div></div>
           <div><div class="hero-stat-value">${(latest.reach || 0).toLocaleString()}</div><div class="hero-stat-label">도달</div><div class="hero-stat-meaning">본 사람 수(중복 제외)</div></div>

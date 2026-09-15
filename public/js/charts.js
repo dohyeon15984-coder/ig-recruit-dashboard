@@ -51,11 +51,11 @@ const barValueLabelPlugin = {
       const value = chart.data.datasets[0].data[index];
       if (value == null) return;
       ctx.save();
-      ctx.fillStyle = 'rgba(255,255,255,0.85)';
-      ctx.font = "600 9px 'Pretendard', sans-serif";
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.font = "700 12px 'Pretendard', sans-serif";
       ctx.textAlign = 'center';
       ctx.textBaseline = 'bottom';
-      ctx.fillText(value.toLocaleString(), bar.x, bar.y - 10);
+      ctx.fillText(value.toLocaleString(), bar.x, bar.y - 12);
       ctx.restore();
     });
   }
@@ -100,7 +100,7 @@ function renderReachSparkline(entries) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      layout: { padding: { top: 20 } },
+      layout: { padding: { top: 24 } },
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -111,7 +111,7 @@ function renderReachSparkline(entries) {
         }
       },
       scales: {
-        x: { display: true, grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 9 }, maxRotation: 0 } },
+        x: { display: true, grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.6)', font: { size: 11 }, maxRotation: 0 } },
         y: { display: false }
       }
     }
