@@ -345,9 +345,16 @@ function updateSortArrows() {
   });
 }
 
+// 팔로워 수는 스냅샷 지표라 "그 날짜 기준 팔로워 수"는 그 날짜 이전(포함) 가장 최근 값으로 본다.
+function followerCountAsOf(history, dateStr) {
+  const before = history.filter((h) => h.follower_count != null && h.date <= dateStr).sort((a, b) => a.date.localeCompare(b.date));
+  return before.length ? before[before.length - 1].follower_count : null;
+}
+
 // 광고 집행 1건의 파생 지표를 계산한다. 도달/참여는 게시물 전체 값을 그대로 쓴다 —
 // 메타 광고 API 연동 없이는 "광고로 발생한" 도달/참여만 따로 떼어낼 방법이 없기 때문.
-function computeAdMetrics(campaign, postsById) {
+// 팔로워당 비용도 마찬가지로 "그 기간 전체 팔로워 증가분" 기준 근사치다.
+function computeAdMetrics(campaign, postsById, history) {
   const post = postsById.get(campaign.postId);
   const days = Math.max(1, Math.round((new Date(campaign.endDate) - new Date(campaign.startDate)) / (24 * 60 * 60 * 1000)) + 1);
   const reach = post ? post.reach || 0 : 0;
@@ -355,10 +362,16 @@ function computeAdMetrics(campaign, postsById) {
   const rate = post ? engagementRate(post) : 0;
   const cpm = reach ? (campaign.spend / reach) * 1000 : null;
   const cpe = engagement ? campaign.spend / engagement : null;
-  return { post, days, reach, engagement, rate, cpm, cpe };
+
+  const followerStart = followerCountAsOf(history, campaign.startDate);
+  const followerEnd = followerCountAsOf(history, campaign.endDate);
+  const followerGrowth = followerStart != null && followerEnd != null ? followerEnd - followerStart : null;
+  const costPerFollower = followerGrowth != null && followerGrowth > 0 ? campaign.spend / followerGrowth : null;
+
+  return { post, days, reach, engagement, rate, cpm, cpe, followerGrowth, costPerFollower };
 }
 
-function renderAdsSummary(adCampaigns, posts) {
+function renderAdsSummary(adCampaigns, posts, history) {
   const el = document.getElementById('adsSummaryRow');
   if (!adCampaigns.length) {
     el.innerHTML = '<div class="ad-stat-card"><div class="ad-stat-label">광고 집행 내역</div><div class="ad-stat-value">아직 없어요</div></div>';
@@ -370,7 +383,7 @@ function renderAdsSummary(adCampaigns, posts) {
   let totalReach = 0;
   let totalEngagement = 0;
   adCampaigns.forEach((c) => {
-    const m = computeAdMetrics(c, postsById);
+    const m = computeAdMetrics(c, postsById, history);
     totalReach += m.reach;
     totalEngagement += m.engagement;
   });
@@ -386,10 +399,10 @@ function renderAdsSummary(adCampaigns, posts) {
   `;
 }
 
-function renderAdCampaignsTable(adCampaigns, posts) {
+function renderAdCampaignsTable(adCampaigns, posts, history) {
   const tbody = document.getElementById('adCampaignsTableBody');
   if (!adCampaigns.length) {
-    tbody.innerHTML = '<tr><td colspan="10" class="caption-cell">아직 등록된 광고 집행 내역이 없어요. 위에서 등록해보세요.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11" class="caption-cell">아직 등록된 광고 집행 내역이 없어요. 위에서 등록해보세요.</td></tr>';
     return;
   }
 
@@ -398,7 +411,7 @@ function renderAdCampaignsTable(adCampaigns, posts) {
 
   tbody.innerHTML = sorted
     .map((c) => {
-      const m = computeAdMetrics(c, postsById);
+      const m = computeAdMetrics(c, postsById, history);
       const captionRaw = m.post ? m.post.caption || '(캡션 없음)' : null;
       const postLabel = captionRaw
         ? escapeHtml(captionRaw.slice(0, 24)) + (captionRaw.length > 24 ? '…' : '')
@@ -417,6 +430,7 @@ function renderAdCampaignsTable(adCampaigns, posts) {
         <td>${(m.rate * 100).toFixed(1)}%</td>
         <td>${m.cpm != null ? Math.round(m.cpm).toLocaleString() + '원' : '-'}</td>
         <td>${m.cpe != null ? Math.round(m.cpe).toLocaleString() + '원' : '-'}</td>
+        <td>${m.costPerFollower != null ? Math.round(m.costPerFollower).toLocaleString() + '원' : '-'}</td>
         <td><button class="ad-delete-btn" data-ad-id="${c.id}">삭제</button></td>
       </tr>`;
     })
@@ -447,8 +461,8 @@ function populateAdPostSelect(posts) {
 
 function renderAdsTab(data) {
   populateAdPostSelect(data.posts);
-  renderAdsSummary(data.adCampaigns || [], data.posts);
-  renderAdCampaignsTable(data.adCampaigns || [], data.posts);
+  renderAdsSummary(data.adCampaigns || [], data.posts, data.history);
+  renderAdCampaignsTable(data.adCampaigns || [], data.posts, data.history);
 }
 
 function setupAdCampaignForm() {
