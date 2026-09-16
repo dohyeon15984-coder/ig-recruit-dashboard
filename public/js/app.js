@@ -402,7 +402,7 @@ function renderAdsSummary(adCampaigns, posts, history) {
 function renderAdCampaignsTable(adCampaigns, posts, history) {
   const tbody = document.getElementById('adCampaignsTableBody');
   if (!adCampaigns.length) {
-    tbody.innerHTML = '<tr><td colspan="11" class="caption-cell">아직 등록된 광고 집행 내역이 없어요. 위에서 등록해보세요.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12" class="caption-cell">아직 등록된 광고 집행 내역이 없어요. 위에서 등록해보세요.</td></tr>';
     return;
   }
 
@@ -410,7 +410,7 @@ function renderAdCampaignsTable(adCampaigns, posts, history) {
   const sorted = [...adCampaigns].sort((a, b) => (b.startDate || '').localeCompare(a.startDate || ''));
 
   tbody.innerHTML = sorted
-    .map((c) => {
+    .map((c, index) => {
       const m = computeAdMetrics(c, postsById, history);
       const captionRaw = m.post ? m.post.caption || '(캡션 없음)' : null;
       const postLabel = captionRaw
@@ -418,6 +418,7 @@ function renderAdCampaignsTable(adCampaigns, posts, history) {
         : '(삭제된 게시물)';
       return `
       <tr>
+        <td>${index + 1}</td>
         <td class="caption-cell">
           ${postLabel}
           ${c.note ? `<div style="font-size:11px;color:var(--text-faint);margin-top:2px;">${escapeHtml(c.note)}</div>` : ''}
@@ -466,12 +467,19 @@ function renderAdsTab(data) {
 }
 
 function setupAdCampaignForm() {
+  const spendInput = document.getElementById('adSpend');
+  // 입력하는 동안 숫자만 남기고 천단위 콤마를 붙여 보여준다 (예: 342639 -> 342,639).
+  spendInput.addEventListener('input', () => {
+    const digits = spendInput.value.replace(/[^0-9]/g, '');
+    spendInput.value = digits ? Number(digits).toLocaleString() : '';
+  });
+
   document.getElementById('adCampaignForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const postId = document.getElementById('adPostSelect').value;
     const startDate = document.getElementById('adStartDate').value;
     const endDate = document.getElementById('adEndDate').value;
-    const spend = document.getElementById('adSpend').value;
+    const spend = spendInput.value.replace(/[^0-9]/g, '');
     const note = document.getElementById('adNote').value;
     if (!postId || !startDate || !endDate || !spend) return;
 

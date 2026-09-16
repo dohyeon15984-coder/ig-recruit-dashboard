@@ -159,7 +159,7 @@
           </div>
           <div class="ad-form-field">
             <label for="adSpend">광고비 (원)</label>
-            <input type="number" id="adSpend" min="0" step="1000" placeholder="예: 150000" required>
+            <input type="text" inputmode="numeric" id="adSpend" placeholder="예: 150,000" required>
           </div>
           <div class="ad-form-field ad-form-field-wide">
             <label for="adNote">메모 (선택)</label>
@@ -176,6 +176,7 @@
           <table id="adCampaignsTable">
             <thead>
               <tr>
+                <th>#</th>
                 <th>게시물</th>
                 <th>기간</th>
                 <th>일수</th>
