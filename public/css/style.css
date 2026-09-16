@@ -217,6 +217,54 @@ h2 { letter-spacing: -0.01em; }
 
 .panel-desc { font-size: 12px; color: var(--text-mute); margin: -8px 0 14px; }
 
+.ads-summary-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+@media (max-width: 860px) {
+  .ads-summary-row { grid-template-columns: repeat(2, 1fr); }
+}
+
+.ad-stat-card {
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 18px 20px;
+}
+
+.ad-stat-label { font-size: 12px; color: var(--text-mute); font-weight: 600; margin-bottom: 8px; }
+.ad-stat-value { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; color: var(--text); }
+
+.ad-form { display: flex; flex-wrap: wrap; gap: 14px; align-items: end; }
+
+.ad-form-field { display: flex; flex-direction: column; gap: 6px; min-width: 140px; }
+.ad-form-field-wide { flex: 1 1 240px; }
+
+.ad-form-field label { font-size: 12px; color: var(--text-mute); font-weight: 600; }
+
+.ad-form-field input,
+.ad-form-field select {
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  font: inherit;
+  background: #fff;
+  color: var(--text);
+}
+
+.ad-delete-btn {
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: 13px;
+}
+.ad-delete-btn:hover { color: var(--bad); }
+
 .granularity-select {
   font-size: 12.5px;
   font-weight: 600;

@@ -55,6 +55,7 @@ function buildDashboardPayload(query = {}) {
     goal: computeGoalProgress(settings, allHistory),
     demographics: live ? store.loadDemographics() : DEMO_DEMOGRAPHICS,
     chartNotes: store.loadChartNotes(),
+    adCampaigns: store.loadAdCampaigns(),
     insights: generateInsights(posts, history, settings),
     categories: CATEGORIES,
     meta: { totalPosts: allPosts.length, filteredPosts: posts.length }
@@ -133,6 +134,22 @@ router.post('/chart-notes', (req, res) => {
   res.json({ chartNotes: notes });
 });
 
+// 게시물 유료 광고 집행 내역 CRUD. 메타 광고 API 연동이 아니라, Ads Manager에서
+// 직접 확인한 값을 사용자가 수동으로 입력해두는 용도.
+router.post('/ad-campaigns', (req, res) => {
+  const { id, postId, spend, startDate, endDate, note } = req.body || {};
+  if (!postId || !startDate || !endDate || spend == null) {
+    return res.status(400).json({ error: '게시물, 기간, 광고비는 필수예요.' });
+  }
+  const record = store.saveAdCampaign({ id, postId, spend: Number(spend), startDate, endDate, note: note || '' });
+  res.json({ adCampaign: record, adCampaigns: store.loadAdCampaigns() });
+});
+
+router.delete('/ad-campaigns/:id', (req, res) => {
+  const adCampaigns = store.deleteAdCampaign(req.params.id);
+  res.json({ adCampaigns });
+});
+
 router.post('/settings', (req, res) => {
   const { goalLabel, goalBaselineFollowers, goalTargetNet } = req.body || {};
   const partial = {
@@ -162,12 +179,15 @@ router.post('/admin/import', (req, res) => {
     return res.status(401).json({ error: '인증에 실패했어요.' });
   }
 
-  const { posts, history, demographics, chartNotes } = req.body || {};
+  const { posts, history, demographics, chartNotes, adCampaigns } = req.body || {};
   if (Array.isArray(posts)) store.importPosts(posts);
   if (Array.isArray(history)) store.mergeHistorySnapshots(history);
   if (demographics) store.saveDemographics(demographics);
   if (Array.isArray(chartNotes)) {
     for (const note of chartNotes) store.saveChartNote(note);
+  }
+  if (Array.isArray(adCampaigns)) {
+    for (const campaign of adCampaigns) store.saveAdCampaign(campaign);
   }
 
   res.json({ ok: true, importedPosts: posts?.length ?? 0, importedHistory: history?.length ?? 0 });

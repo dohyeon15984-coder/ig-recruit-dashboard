@@ -44,9 +44,10 @@
     </section>
 
     <nav class="tab-bar" id="tabBar">
-      <button class="tab-btn is-active" data-tab="summary">① 요약</button>
-      <button class="tab-btn" data-tab="details">② 세부 데이터</button>
-      <button class="tab-btn" data-tab="posts">③ 전체 게시물</button>
+      <button class="tab-btn is-active" data-tab="summary">① 성과요약</button>
+      <button class="tab-btn" data-tab="details">② 프로필 데이터</button>
+      <button class="tab-btn" data-tab="ads">③ 광고 성과 분석</button>
+      <button class="tab-btn" data-tab="posts">④ 전체 게시물</button>
     </nav>
 
     <div class="tab-panel" data-tab-panel="summary">
@@ -133,6 +134,62 @@
         <div class="panel panel-half">
           <h2>카테고리별 참여율</h2>
           <div class="chart-wrap"><canvas id="categoryChart"></canvas></div>
+        </div>
+      </section>
+    </div>
+
+    <div class="tab-panel" data-tab-panel="ads" hidden>
+      <section class="ads-summary-row" id="adsSummaryRow"></section>
+
+      <section class="panel">
+        <h2>광고 집행 등록</h2>
+        <div class="panel-desc">메타 광고관리자에서 확인한 값을 직접 입력해주세요 — 이 값들로 아래 지표를 계산해드려요</div>
+        <form id="adCampaignForm" class="ad-form">
+          <div class="ad-form-field ad-form-field-wide">
+            <label for="adPostSelect">광고 집행 게시물</label>
+            <select id="adPostSelect" class="tag-select" required></select>
+          </div>
+          <div class="ad-form-field">
+            <label for="adStartDate">시작일</label>
+            <input type="date" id="adStartDate" required>
+          </div>
+          <div class="ad-form-field">
+            <label for="adEndDate">종료일</label>
+            <input type="date" id="adEndDate" required>
+          </div>
+          <div class="ad-form-field">
+            <label for="adSpend">광고비 (원)</label>
+            <input type="number" id="adSpend" min="0" step="1000" placeholder="예: 150000" required>
+          </div>
+          <div class="ad-form-field ad-form-field-wide">
+            <label for="adNote">메모 (선택)</label>
+            <input type="text" id="adNote" placeholder="예: 하반기 공채 홍보">
+          </div>
+          <button type="submit" class="btn-primary">등록</button>
+        </form>
+      </section>
+
+      <section class="panel">
+        <h2>광고 집행 내역</h2>
+        <div class="panel-desc">도달·참여는 해당 게시물의 전체 수치예요 (광고 기간 중 유입만 따로 구분되진 않아요)</div>
+        <div class="table-wrap">
+          <table id="adCampaignsTable">
+            <thead>
+              <tr>
+                <th>게시물</th>
+                <th>기간</th>
+                <th>일수</th>
+                <th>광고비</th>
+                <th>도달</th>
+                <th>참여</th>
+                <th>참여율</th>
+                <th>CPM</th>
+                <th>참여당 비용</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="adCampaignsTableBody"></tbody>
+          </table>
         </div>
       </section>
     </div>

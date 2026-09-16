@@ -345,6 +345,132 @@ function updateSortArrows() {
   });
 }
 
+// 광고 집행 1건의 파생 지표를 계산한다. 도달/참여는 게시물 전체 값을 그대로 쓴다 —
+// 메타 광고 API 연동 없이는 "광고로 발생한" 도달/참여만 따로 떼어낼 방법이 없기 때문.
+function computeAdMetrics(campaign, postsById) {
+  const post = postsById.get(campaign.postId);
+  const days = Math.max(1, Math.round((new Date(campaign.endDate) - new Date(campaign.startDate)) / (24 * 60 * 60 * 1000)) + 1);
+  const reach = post ? post.reach || 0 : 0;
+  const engagement = post ? (post.like_count || 0) + (post.comments_count || 0) + (post.saved || 0) + (post.shares || 0) : 0;
+  const rate = post ? engagementRate(post) : 0;
+  const cpm = reach ? (campaign.spend / reach) * 1000 : null;
+  const cpe = engagement ? campaign.spend / engagement : null;
+  return { post, days, reach, engagement, rate, cpm, cpe };
+}
+
+function renderAdsSummary(adCampaigns, posts) {
+  const el = document.getElementById('adsSummaryRow');
+  if (!adCampaigns.length) {
+    el.innerHTML = '<div class="ad-stat-card"><div class="ad-stat-label">광고 집행 내역</div><div class="ad-stat-value">아직 없어요</div></div>';
+    return;
+  }
+
+  const postsById = new Map(posts.map((p) => [p.id, p]));
+  const totalSpend = adCampaigns.reduce((sum, c) => sum + Number(c.spend || 0), 0);
+  let totalReach = 0;
+  let totalEngagement = 0;
+  adCampaigns.forEach((c) => {
+    const m = computeAdMetrics(c, postsById);
+    totalReach += m.reach;
+    totalEngagement += m.engagement;
+  });
+  const avgCpm = totalReach ? (totalSpend / totalReach) * 1000 : null;
+  const avgCpe = totalEngagement ? totalSpend / totalEngagement : null;
+  const avgSpendPerPost = totalSpend / adCampaigns.length;
+
+  el.innerHTML = `
+    <div class="ad-stat-card"><div class="ad-stat-label">총 광고 집행 건수</div><div class="ad-stat-value">${adCampaigns.length}건</div></div>
+    <div class="ad-stat-card"><div class="ad-stat-label">누적 광고비</div><div class="ad-stat-value">${Math.round(totalSpend).toLocaleString()}원</div></div>
+    <div class="ad-stat-card"><div class="ad-stat-label">게시물당 평균 광고비</div><div class="ad-stat-value">${Math.round(avgSpendPerPost).toLocaleString()}원</div></div>
+    <div class="ad-stat-card"><div class="ad-stat-label">평균 CPM</div><div class="ad-stat-value">${avgCpm != null ? Math.round(avgCpm).toLocaleString() + '원' : '-'}</div></div>
+  `;
+}
+
+function renderAdCampaignsTable(adCampaigns, posts) {
+  const tbody = document.getElementById('adCampaignsTableBody');
+  if (!adCampaigns.length) {
+    tbody.innerHTML = '<tr><td colspan="10" class="caption-cell">아직 등록된 광고 집행 내역이 없어요. 위에서 등록해보세요.</td></tr>';
+    return;
+  }
+
+  const postsById = new Map(posts.map((p) => [p.id, p]));
+  const sorted = [...adCampaigns].sort((a, b) => (b.startDate || '').localeCompare(a.startDate || ''));
+
+  tbody.innerHTML = sorted
+    .map((c) => {
+      const m = computeAdMetrics(c, postsById);
+      const captionRaw = m.post ? m.post.caption || '(캡션 없음)' : null;
+      const postLabel = captionRaw
+        ? escapeHtml(captionRaw.slice(0, 24)) + (captionRaw.length > 24 ? '…' : '')
+        : '(삭제된 게시물)';
+      return `
+      <tr>
+        <td class="caption-cell">
+          ${postLabel}
+          ${c.note ? `<div style="font-size:11px;color:var(--text-faint);margin-top:2px;">${escapeHtml(c.note)}</div>` : ''}
+        </td>
+        <td>${c.startDate} ~ ${c.endDate}</td>
+        <td>${m.days}일</td>
+        <td>${Math.round(Number(c.spend)).toLocaleString()}원</td>
+        <td>${m.reach.toLocaleString()}</td>
+        <td>${m.engagement.toLocaleString()}</td>
+        <td>${(m.rate * 100).toFixed(1)}%</td>
+        <td>${m.cpm != null ? Math.round(m.cpm).toLocaleString() + '원' : '-'}</td>
+        <td>${m.cpe != null ? Math.round(m.cpe).toLocaleString() + '원' : '-'}</td>
+        <td><button class="ad-delete-btn" data-ad-id="${c.id}">삭제</button></td>
+      </tr>`;
+    })
+    .join('');
+
+  tbody.querySelectorAll('.ad-delete-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('이 광고 집행 내역을 삭제할까요?')) return;
+      await fetch(`/api/ad-campaigns/${btn.dataset.adId}`, { method: 'DELETE' });
+      await refresh();
+    });
+  });
+}
+
+function populateAdPostSelect(posts) {
+  const select = document.getElementById('adPostSelect');
+  const sorted = [...posts].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  const currentValue = select.value;
+  select.innerHTML = sorted
+    .map((p) => {
+      const dateLabel = new Date(p.timestamp).toLocaleDateString('ko-KR');
+      const captionSnippet = escapeHtml((p.caption || '(캡션 없음)').slice(0, 30));
+      return `<option value="${p.id}">${dateLabel} · ${captionSnippet}</option>`;
+    })
+    .join('');
+  if (currentValue && sorted.some((p) => p.id === currentValue)) select.value = currentValue;
+}
+
+function renderAdsTab(data) {
+  populateAdPostSelect(data.posts);
+  renderAdsSummary(data.adCampaigns || [], data.posts);
+  renderAdCampaignsTable(data.adCampaigns || [], data.posts);
+}
+
+function setupAdCampaignForm() {
+  document.getElementById('adCampaignForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const postId = document.getElementById('adPostSelect').value;
+    const startDate = document.getElementById('adStartDate').value;
+    const endDate = document.getElementById('adEndDate').value;
+    const spend = document.getElementById('adSpend').value;
+    const note = document.getElementById('adNote').value;
+    if (!postId || !startDate || !endDate || !spend) return;
+
+    await fetch('/api/ad-campaigns', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ postId, startDate, endDate, spend, note })
+    });
+    e.target.reset();
+    await refresh();
+  });
+}
+
 function renderPostsTable(data) {
   const tbody = document.getElementById('postsTableBody');
   const sorted = sortPosts(data.posts);
@@ -572,6 +698,7 @@ function renderAll(data) {
   renderTopPosts(data.posts);
   renderRecentThumbs(data.posts);
   renderPostsTable(data);
+  renderAdsTab(data);
   renderFollowerChart(monthlyBucketed(data.history, 'follower_count'));
   renderViewsOnlyChart(
     data.posts,
@@ -710,6 +837,7 @@ async function init() {
   setupNoteModal();
   setupTabs();
   setupTrendGranularityControls();
+  setupAdCampaignForm();
   await refresh();
 
   document.getElementById('syncBtn').addEventListener('click', async () => {
