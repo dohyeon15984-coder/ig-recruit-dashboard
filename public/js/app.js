@@ -134,6 +134,7 @@ function renderDemographics(data) {
 const state = {
   filters: { days: 'all', mediaType: 'ALL', category: 'ALL', search: '' },
   sort: { field: 'timestamp', dir: 'desc' },
+  adSort: { field: 'startDate', dir: 'desc' },
   data: null
 };
 
@@ -357,8 +358,13 @@ function followerCountAsOf(history, dateStr) {
 function computeAdMetrics(campaign, postsById, history) {
   const post = postsById.get(campaign.postId);
   const days = Math.max(1, Math.round((new Date(campaign.endDate) - new Date(campaign.startDate)) / (24 * 60 * 60 * 1000)) + 1);
+  const views = post ? post.views || 0 : 0;
   const reach = post ? post.reach || 0 : 0;
-  const engagement = post ? (post.like_count || 0) + (post.comments_count || 0) + (post.saved || 0) + (post.shares || 0) : 0;
+  const likes = post ? post.like_count || 0 : 0;
+  const comments = post ? post.comments_count || 0 : 0;
+  const saved = post ? post.saved || 0 : 0;
+  const shares = post ? post.shares || 0 : 0;
+  const engagement = likes + comments + saved + shares;
   const rate = post ? engagementRate(post) : 0;
   const cpm = reach ? (campaign.spend / reach) * 1000 : null;
   const cpe = engagement ? campaign.spend / engagement : null;
@@ -368,7 +374,7 @@ function computeAdMetrics(campaign, postsById, history) {
   const followerGrowth = followerStart != null && followerEnd != null ? followerEnd - followerStart : null;
   const costPerFollower = followerGrowth != null && followerGrowth > 0 ? campaign.spend / followerGrowth : null;
 
-  return { post, days, reach, engagement, rate, cpm, cpe, followerGrowth, costPerFollower };
+  return { post, days, views, reach, likes, comments, saved, shares, engagement, rate, cpm, cpe, followerGrowth, costPerFollower };
 }
 
 function renderAdsSummary(adCampaigns, posts, history) {
@@ -395,42 +401,81 @@ function renderAdsSummary(adCampaigns, posts, history) {
     <div class="ad-stat-card"><div class="ad-stat-label">총 광고 집행 건수</div><div class="ad-stat-value">${adCampaigns.length}건</div></div>
     <div class="ad-stat-card"><div class="ad-stat-label">누적 광고비</div><div class="ad-stat-value">${Math.round(totalSpend).toLocaleString()}원</div></div>
     <div class="ad-stat-card"><div class="ad-stat-label">게시물당 평균 광고비</div><div class="ad-stat-value">${Math.round(avgSpendPerPost).toLocaleString()}원</div></div>
-    <div class="ad-stat-card"><div class="ad-stat-label">평균 CPM</div><div class="ad-stat-value">${avgCpm != null ? Math.round(avgCpm).toLocaleString() + '원' : '-'}</div></div>
+    <div class="ad-stat-card"><div class="ad-stat-label"><span class="info-hint" title="CPM(Cost Per Mille): 도달 1,000회당 광고비">평균 CPM</span></div><div class="ad-stat-value">${avgCpm != null ? Math.round(avgCpm).toLocaleString() + '원' : '-'}</div></div>
   `;
+}
+
+// 정렬 기준(field)에 맞는 값을 계산된 지표(m) 또는 원본 캠페인(c)에서 꺼내온다.
+function getAdSortValue(c, m, field) {
+  if (field === 'startDate') return c.startDate || '';
+  if (field === 'spend') return Number(c.spend) || 0;
+  if (field in m) {
+    const v = m[field];
+    return v == null ? -1 : v;
+  }
+  return 0;
+}
+
+function sortAdCampaigns(adCampaigns, postsById, history) {
+  const { field, dir } = state.adSort;
+  const mult = dir === 'asc' ? 1 : -1;
+  const withMetrics = adCampaigns.map((c) => ({ c, m: computeAdMetrics(c, postsById, history) }));
+  withMetrics.sort((a, b) => {
+    const av = getAdSortValue(a.c, a.m, field);
+    const bv = getAdSortValue(b.c, b.m, field);
+    if (typeof av === 'string' || typeof bv === 'string') return mult * String(av).localeCompare(String(bv));
+    return av > bv ? mult : av < bv ? -mult : 0;
+  });
+  return withMetrics;
+}
+
+function updateAdSortArrows() {
+  document.querySelectorAll('#adCampaignsTable th[data-ad-sort]').forEach((th) => {
+    const arrow = th.querySelector('.sort-arrow');
+    arrow.textContent = th.dataset.adSort === state.adSort.field ? (state.adSort.dir === 'asc' ? '▲' : '▼') : '';
+  });
 }
 
 function renderAdCampaignsTable(adCampaigns, posts, history) {
   const tbody = document.getElementById('adCampaignsTableBody');
+  updateAdSortArrows();
   if (!adCampaigns.length) {
-    tbody.innerHTML = '<tr><td colspan="12" class="caption-cell">아직 등록된 광고 집행 내역이 없어요. 위에서 등록해보세요.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="17" class="caption-cell">아직 등록된 광고 집행 내역이 없어요. 위에서 등록해보세요.</td></tr>';
     return;
   }
 
   const postsById = new Map(posts.map((p) => [p.id, p]));
-  const sorted = [...adCampaigns].sort((a, b) => (b.startDate || '').localeCompare(a.startDate || ''));
+  const sorted = sortAdCampaigns(adCampaigns, postsById, history);
 
   tbody.innerHTML = sorted
-    .map((c, index) => {
-      const m = computeAdMetrics(c, postsById, history);
+    .map(({ c, m }, index) => {
       const captionRaw = m.post ? m.post.caption || '(캡션 없음)' : null;
       const postLabel = captionRaw
         ? escapeHtml(captionRaw.slice(0, 24)) + (captionRaw.length > 24 ? '…' : '')
         : '(삭제된 게시물)';
+      const displayLabel = c.note ? escapeHtml(c.note) : postLabel;
       return `
       <tr>
         <td>${index + 1}</td>
         <td class="caption-cell">
-          ${postLabel}
-          ${c.note ? `<div style="font-size:11px;color:var(--text-faint);margin-top:2px;">${escapeHtml(c.note)}</div>` : ''}
+          <div style="display:flex; align-items:center; gap:8px;">
+            ${thumbHtml(m.post || {}, 'row-thumb')}
+            <div>${displayLabel}</div>
+          </div>
         </td>
         <td>${c.startDate} ~ ${c.endDate}</td>
         <td>${m.days}일</td>
         <td>${Math.round(Number(c.spend)).toLocaleString()}원</td>
+        <td>${m.views.toLocaleString()}</td>
         <td>${m.reach.toLocaleString()}</td>
-        <td>${m.engagement.toLocaleString()}</td>
+        <td>${m.likes.toLocaleString()}</td>
+        <td>${m.comments.toLocaleString()}</td>
+        <td>${m.saved.toLocaleString()}</td>
+        <td>${m.shares.toLocaleString()}</td>
         <td>${(m.rate * 100).toFixed(1)}%</td>
         <td>${m.cpm != null ? Math.round(m.cpm).toLocaleString() + '원' : '-'}</td>
         <td>${m.cpe != null ? Math.round(m.cpe).toLocaleString() + '원' : '-'}</td>
+        <td>${m.followerGrowth != null ? m.followerGrowth.toLocaleString() + '명' : '-'}</td>
         <td>${m.costPerFollower != null ? Math.round(m.costPerFollower).toLocaleString() + '원' : '-'}</td>
         <td><button class="ad-delete-btn" data-ad-id="${c.id}">삭제</button></td>
       </tr>`;
@@ -442,6 +487,22 @@ function renderAdCampaignsTable(adCampaigns, posts, history) {
       if (!confirm('이 광고 집행 내역을 삭제할까요?')) return;
       await fetch(`/api/ad-campaigns/${btn.dataset.adId}`, { method: 'DELETE' });
       await refresh();
+    });
+  });
+}
+
+const DEFAULT_AD_SORT = { field: 'startDate', dir: 'desc' };
+
+function setupAdSortableHeaders() {
+  document.querySelectorAll('#adCampaignsTable th[data-ad-sort]').forEach((th) => {
+    th.addEventListener('click', () => {
+      const field = th.dataset.adSort;
+      if (state.adSort.field === field) {
+        state.adSort = state.adSort.dir === 'desc' ? { field, dir: 'asc' } : { ...DEFAULT_AD_SORT };
+      } else {
+        state.adSort = { field, dir: 'desc' };
+      }
+      if (state.data) renderAdCampaignsTable(state.data.adCampaigns || [], state.data.posts, state.data.history);
     });
   });
 }
@@ -507,12 +568,13 @@ function renderPostsTable(data) {
   }
 
   tbody.innerHTML = sorted
-    .map((p) => {
+    .map((p, index) => {
       const options = data.categories
         .map((c) => `<option value="${c}" ${p.category === c ? 'selected' : ''}>${c}</option>`)
         .join('');
       return `
       <tr data-post-id="${p.id}">
+        <td>${index + 1}</td>
         <td>${thumbHtml(p, 'row-thumb')}</td>
         <td>${new Date(p.timestamp).toLocaleDateString('ko-KR')}</td>
         <td class="caption-cell">${escapeHtml(p.caption || '').slice(0, 60)}</td>
@@ -736,14 +798,17 @@ function renderAll(data) {
   );
   renderMediaTypeChart(data.posts);
   renderCategoryChart(data.posts);
+  renderCategoryDonutChart(data.posts);
 }
+
+const DEFAULT_POST_SORT = { field: 'timestamp', dir: 'desc' };
 
 function setupSortableHeaders() {
   document.querySelectorAll('#postsTable th[data-sort]').forEach((th) => {
     th.addEventListener('click', () => {
       const field = th.dataset.sort;
       if (state.sort.field === field) {
-        state.sort.dir = state.sort.dir === 'asc' ? 'desc' : 'asc';
+        state.sort = state.sort.dir === 'desc' ? { field, dir: 'asc' } : { ...DEFAULT_POST_SORT };
       } else {
         state.sort = { field, dir: 'desc' };
       }
@@ -860,6 +925,7 @@ async function init() {
   setupTabs();
   setupTrendGranularityControls();
   setupAdCampaignForm();
+  setupAdSortableHeaders();
   await refresh();
 
   document.getElementById('syncBtn').addEventListener('click', async () => {

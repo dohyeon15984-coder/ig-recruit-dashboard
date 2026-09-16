@@ -39,7 +39,7 @@ function groupAvgEngagement(posts, keyFn, labelFn) {
     .sort((a, b) => b.value - a.value);
 }
 
-let followerChartInstance, mediaTypeChartInstance, categoryChartInstance, ageChartInstance, reachSparklineInstance;
+let followerChartInstance, mediaTypeChartInstance, categoryChartInstance, ageChartInstance, reachSparklineInstance, categoryDonutChartInstance;
 
 // 막대 위에 값을 직접 표시해주는 미니 플러그인 (이 차트에만 적용, 전역 등록 아님)
 function makeBarValueLabelPlugin(textColor) {
@@ -466,6 +466,66 @@ function renderCategoryChart(posts) {
       scales: {
         x: { ticks: { callback: (v) => v + '%' }, grid: { color: '#eef0f5' } },
         y: { grid: { display: false } }
+      }
+    }
+  });
+}
+
+// 도넛 조각 한가운데에 값(개수)을 직접 그려주는 미니 플러그인.
+const donutValueLabelPlugin = {
+  id: 'donutValueLabel',
+  afterDatasetsDraw(chart) {
+    const { ctx } = chart;
+    const meta = chart.getDatasetMeta(0);
+    const data = chart.data.datasets[0].data;
+    meta.data.forEach((arc, i) => {
+      const value = data[i];
+      if (!value) return;
+      const midAngle = (arc.startAngle + arc.endAngle) / 2;
+      const radius = (arc.innerRadius + arc.outerRadius) / 2;
+      const x = arc.x + Math.cos(midAngle) * radius;
+      const y = arc.y + Math.sin(midAngle) * radius;
+      ctx.save();
+      ctx.fillStyle = '#fff';
+      ctx.font = "700 11px 'Pretendard', sans-serif";
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(value.toLocaleString(), x, y);
+      ctx.restore();
+    });
+  }
+};
+
+function renderCategoryDonutChart(posts) {
+  const counts = new Map();
+  posts.forEach((p) => {
+    const key = p.category || CATEGORY_PLACEHOLDER;
+    counts.set(key, (counts.get(key) || 0) + 1);
+  });
+  const entries = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+
+  const ctx = document.getElementById('categoryDonutChart');
+  if (categoryDonutChartInstance) categoryDonutChartInstance.destroy();
+  categoryDonutChartInstance = new Chart(ctx, {
+    type: 'doughnut',
+    plugins: [donutValueLabelPlugin],
+    data: {
+      labels: entries.map(([k]) => k),
+      datasets: [
+        {
+          data: entries.map(([, v]) => v),
+          backgroundColor: entries.map((_, i) => TABLEAU10[i % TABLEAU10.length]),
+          borderWidth: 2,
+          borderColor: '#fff'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { boxWidth: 10, padding: 10, font: { size: 11 } } },
+        tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${ctx.parsed}개` } }
       }
     }
   });

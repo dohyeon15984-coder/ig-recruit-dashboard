@@ -171,22 +171,27 @@
 
       <section class="panel">
         <h2>광고 집행 내역</h2>
-        <div class="panel-desc">도달·참여는 해당 게시물의 전체 수치, 팔로워당 비용은 집행 기간 중 전체 팔로워 증가분 기준이에요 (광고만의 효과로 분리된 값은 아니에요)</div>
+        <div class="panel-desc">도달·참여·팔로워 증가는 광고 효과만 분리된 값이 아니라, 해당 게시물/기간의 전체 수치예요</div>
         <div class="table-wrap">
           <table id="adCampaignsTable">
             <thead>
               <tr>
                 <th>#</th>
                 <th>게시물</th>
-                <th>기간</th>
-                <th>일수</th>
-                <th>광고비</th>
-                <th>도달</th>
-                <th>참여</th>
-                <th>참여율</th>
-                <th>CPM</th>
-                <th>참여당 비용</th>
-                <th>팔로워당 비용</th>
+                <th data-ad-sort="startDate">기간 <span class="sort-arrow"></span></th>
+                <th data-ad-sort="days">일수 <span class="sort-arrow"></span></th>
+                <th data-ad-sort="spend">광고비 <span class="sort-arrow"></span></th>
+                <th data-ad-sort="views">조회수 <span class="sort-arrow"></span></th>
+                <th data-ad-sort="reach">도달 <span class="sort-arrow"></span></th>
+                <th data-ad-sort="likes">좋아요 <span class="sort-arrow"></span></th>
+                <th data-ad-sort="comments">댓글 <span class="sort-arrow"></span></th>
+                <th data-ad-sort="saved">저장 <span class="sort-arrow"></span></th>
+                <th data-ad-sort="shares">공유 <span class="sort-arrow"></span></th>
+                <th data-ad-sort="rate">참여율 <span class="sort-arrow"></span></th>
+                <th data-ad-sort="cpm"><span class="info-hint" data-tooltip="CPM(Cost Per Mille): 도달 1,000회당 광고비">CPM</span> <span class="sort-arrow"></span></th>
+                <th data-ad-sort="cpe">참여당 비용 <span class="sort-arrow"></span></th>
+                <th data-ad-sort="followerGrowth">팔로워 증가 <span class="sort-arrow"></span></th>
+                <th data-ad-sort="costPerFollower">팔로워당 비용 <span class="sort-arrow"></span></th>
                 <th></th>
               </tr>
             </thead>
@@ -197,9 +202,15 @@
     </div>
 
     <div class="tab-panel" data-tab-panel="posts" hidden>
-      <section class="panel">
-        <h2>최근 업로드 미리보기</h2>
-        <div id="recentThumbs" class="recent-thumbs"></div>
+      <section class="panel-row">
+        <div class="panel panel-half">
+          <h2>최근 업로드 미리보기</h2>
+          <div id="recentThumbs" class="recent-thumbs"></div>
+        </div>
+        <div class="panel panel-half">
+          <h2>카테고리 분포</h2>
+          <div class="chart-wrap chart-wrap-sm"><canvas id="categoryDonutChart"></canvas></div>
+        </div>
       </section>
 
       <section class="panel">
@@ -211,7 +222,7 @@
           <table id="postsTable">
             <thead>
               <tr>
-                <th></th>
+                <th>#</th>
                 <th data-sort="timestamp">날짜 <span class="sort-arrow"></span></th>
                 <th>내용</th>
                 <th data-sort="media_type">유형 <span class="sort-arrow"></span></th>
