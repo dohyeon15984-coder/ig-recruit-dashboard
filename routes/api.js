@@ -25,7 +25,7 @@ function tokenStatus() {
 function buildDashboardPayload(query = {}) {
   const live = isLiveMode();
 
-  const allPosts = live ? store.loadPosts() : DEMO_POSTS;
+  const allPosts = live ? store.applyPostOverrides(store.loadPosts()) : DEMO_POSTS;
   const allHistory = live ? store.loadHistory() : DEMO_HISTORY;
   const settings = live ? store.loadSettings() : DEMO_SETTINGS;
 
@@ -124,6 +124,21 @@ router.post('/posts/:id/tag', (req, res) => {
   res.json(updated);
 });
 
+// 게시물의 "실제 전체 수치(오가닉+유료 홍보 합산)" 수동 보정. Graph API 기본 인사이트는
+// 오가닉 몫만 주기 때문에, 광고를 태운 게시물은 인스타그램 앱에서 보이는 진짜 합산 값을
+// 여기로 입력하면 이후 대시보드 전체에 그 값이 반영된다.
+router.post('/post-overrides', (req, res) => {
+  const { postId, reach, views, like_count, comments_count, saved, shares } = req.body || {};
+  if (!postId) return res.status(400).json({ error: 'postId가 필요해요.' });
+  const overrides = store.savePostOverride(postId, { reach, views, like_count, comments_count, saved, shares });
+  res.json({ postOverrides: overrides });
+});
+
+router.delete('/post-overrides/:postId', (req, res) => {
+  const overrides = store.clearPostOverride(req.params.postId);
+  res.json({ postOverrides: overrides });
+});
+
 // 추이 차트의 특정 시점(예: 튀는 지점)에 왜 그랬는지 메모를 남기는 기능.
 router.post('/chart-notes', (req, res) => {
   const { chartKey, period, text } = req.body || {};
@@ -179,7 +194,7 @@ router.post('/admin/import', (req, res) => {
     return res.status(401).json({ error: '인증에 실패했어요.' });
   }
 
-  const { posts, history, demographics, chartNotes, adCampaigns } = req.body || {};
+  const { posts, history, demographics, chartNotes, adCampaigns, postOverrides } = req.body || {};
   if (Array.isArray(posts)) store.importPosts(posts);
   if (Array.isArray(history)) store.mergeHistorySnapshots(history);
   if (demographics) store.saveDemographics(demographics);
@@ -188,6 +203,9 @@ router.post('/admin/import', (req, res) => {
   }
   if (Array.isArray(adCampaigns)) {
     for (const campaign of adCampaigns) store.saveAdCampaign(campaign);
+  }
+  if (postOverrides && typeof postOverrides === 'object') {
+    for (const [postId, fields] of Object.entries(postOverrides)) store.savePostOverride(postId, fields);
   }
 
   res.json({ ok: true, importedPosts: posts?.length ?? 0, importedHistory: history?.length ?? 0 });

@@ -648,8 +648,55 @@ function openPostModal(postId) {
     </div>
     <div class="modal-note">참여율은 도달한 사람 중 얼마나 많은 반응(좋아요·댓글·저장·공유)을 이끌어냈는지를 보여줘요. 숫자가 높을수록 도달 대비 콘텐츠 반응이 좋았다는 뜻이에요.</div>
     ${post.permalink && post.permalink !== '#' ? `<a class="modal-link" href="${post.permalink}" target="_blank" rel="noopener">인스타그램에서 보기 →</a>` : ''}
+
+    <div class="post-override-section">
+      <div class="post-override-title">
+        실제 전체 수치 입력 (광고/유료 홍보 포함)
+        ${post.has_override ? '<span class="post-override-badge">반영 중</span>' : ''}
+      </div>
+      <div class="post-override-desc">이 게시물이 광고를 탄 적 있으면, 인스타그램 앱 인사이트에서 보이는 실제 합산 수치를 입력해주세요. 저장하면 위 도달·조회수 등에 반영되고, 요약 카드·차트에도 그대로 쓰여요.</div>
+      <div class="post-override-grid">
+        <div class="post-override-field"><label>조회수</label><input type="number" min="0" id="ovViews" value="${post.views || 0}"></div>
+        <div class="post-override-field"><label>도달</label><input type="number" min="0" id="ovReach" value="${post.reach || 0}"></div>
+        <div class="post-override-field"><label>좋아요</label><input type="number" min="0" id="ovLikes" value="${post.like_count || 0}"></div>
+        <div class="post-override-field"><label>댓글</label><input type="number" min="0" id="ovComments" value="${post.comments_count || 0}"></div>
+        <div class="post-override-field"><label>저장</label><input type="number" min="0" id="ovSaved" value="${post.saved || 0}"></div>
+        <div class="post-override-field"><label>공유</label><input type="number" min="0" id="ovShares" value="${post.shares || 0}"></div>
+      </div>
+      <div class="post-override-actions">
+        ${post.has_override ? '<button type="button" id="postOverrideReset" class="btn-ghost">초기화(원래 값으로)</button>' : ''}
+        <button type="button" id="postOverrideSave" class="btn-primary">저장</button>
+      </div>
+    </div>
   `;
   modal.hidden = false;
+
+  document.getElementById('postOverrideSave').addEventListener('click', async () => {
+    await fetch('/api/post-overrides', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        postId: post.id,
+        views: document.getElementById('ovViews').value,
+        reach: document.getElementById('ovReach').value,
+        like_count: document.getElementById('ovLikes').value,
+        comments_count: document.getElementById('ovComments').value,
+        saved: document.getElementById('ovSaved').value,
+        shares: document.getElementById('ovShares').value
+      })
+    });
+    await refresh();
+    openPostModal(post.id);
+  });
+
+  const resetBtn = document.getElementById('postOverrideReset');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', async () => {
+      await fetch(`/api/post-overrides/${post.id}`, { method: 'DELETE' });
+      await refresh();
+      openPostModal(post.id);
+    });
+  }
 }
 
 function closePostModal() {
