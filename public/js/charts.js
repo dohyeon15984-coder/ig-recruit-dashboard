@@ -88,16 +88,16 @@ function makeLineValueLabelPlugin(datasetIndex, textColor, formatValue = (v) => 
         const value = data[index];
         if (value == null) return;
         const barPoint = barMeta.data[index];
-        const nearBarTop = barPoint && Math.abs(point.y - barPoint.y) < 30;
+        const nearBarTop = barPoint && Math.abs(point.y - barPoint.y) < 40;
         const text = formatValue(value);
-        const y = nearBarTop ? point.y + 16 : point.y - 8;
+        const y = nearBarTop ? point.y + 20 : point.y - 9;
 
         ctx.save();
         ctx.font = "700 11px 'Pretendard', sans-serif";
         ctx.textAlign = 'center';
         ctx.textBaseline = nearBarTop ? 'top' : 'bottom';
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
         ctx.strokeText(text, point.x, y);
         ctx.fillStyle = textColor;
         ctx.fillText(text, point.x, y);
@@ -308,7 +308,7 @@ function renderFollowerChart(history) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      layout: { padding: { top: 20, right: hasGrowthRate ? 14 : 0 } },
+      layout: { padding: { top: hasGrowthRate ? 30 : 20, right: hasGrowthRate ? 14 : 0 } },
       // 증감률 점이 팔로워 수 점과 겹쳐도 그 달 열 어디든 클릭/호버하면 둘 다 반응하도록.
       ...(hasGrowthRate ? { interaction: { mode: 'index', intersect: false } } : {}),
       plugins: {
