@@ -18,7 +18,8 @@ if (window.Chart) {
 function engagementRate(post) {
   const base = post.reach || post.views || 0;
   if (!base) return 0;
-  const interactions = (post.like_count || 0) + (post.comments_count || 0) + (post.saved || 0) + (post.shares || 0);
+  const interactions =
+    (post.like_count || 0) + (post.comments_count || 0) + (post.saved || 0) + (post.shares || 0) + (post.reposts || 0);
   return interactions / base;
 }
 
@@ -320,8 +321,10 @@ function buildTrendSeries(history, field, mode, aggType) {
 const trendChartInstances = {};
 const trendChartSeries = {};
 
-// 메모가 달린 지점 위에 작은 점을 하나 더 찍어 "여기 기록 있음"을 표시해주는 플러그인.
-function makeNoteMarkerPlugin(getNotedIndexes) {
+// 메모가 달린 지점에 작은 뱃지를 찍어 "여기 기록 있음"을 표시해주는 플러그인.
+// 막대 값 라벨(barValueLabelPluginDark)이 있는 월별 모드에서는 그 숫자 바로 오른쪽에 붙여서
+// 겹치지 않게 하고, 게시물 수 라인과 헷갈리지 않도록 라인 색(금색)과 다른 색을 쓴다.
+function makeNoteMarkerPlugin(getNotedIndexes, hasValueLabel) {
   return {
     id: 'noteMarker',
     afterDatasetsDraw(chart) {
@@ -329,12 +332,27 @@ function makeNoteMarkerPlugin(getNotedIndexes) {
       if (!notedIndexes || !notedIndexes.size) return;
       const { ctx } = chart;
       const meta = chart.getDatasetMeta(0);
+      const barData = chart.data.datasets[0].data;
       meta.data.forEach((point, index) => {
         if (!notedIndexes.has(index)) return;
+
+        let markerX = point.x + 10;
+        let markerY = point.y - 10;
+        if (hasValueLabel) {
+          const value = barData[index];
+          const text = value != null ? value.toLocaleString() : '';
+          ctx.save();
+          ctx.font = "700 12px 'Pretendard', sans-serif";
+          const textWidth = ctx.measureText(text).width;
+          ctx.restore();
+          markerX = point.x + textWidth / 2 + 12;
+          markerY = point.y - 18;
+        }
+
         ctx.save();
         ctx.beginPath();
-        ctx.arc(point.x + 7, point.y - 7, 5, 0, Math.PI * 2);
-        ctx.fillStyle = '#c8961e';
+        ctx.arc(markerX, markerY, 5, 0, Math.PI * 2);
+        ctx.fillStyle = '#c81e2c';
         ctx.fill();
         ctx.lineWidth = 1.5;
         ctx.strokeStyle = '#fff';
@@ -343,7 +361,7 @@ function makeNoteMarkerPlugin(getNotedIndexes) {
         ctx.font = "700 8px 'Pretendard', sans-serif";
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('!', point.x + 7, point.y - 6.5);
+        ctx.fillText('!', markerX, markerY + 0.5);
         ctx.restore();
       });
     }
@@ -360,7 +378,7 @@ function renderTrendChart(canvasId, instanceKey, series, mode, label, color, not
     if (notesByPeriod && notesByPeriod[s.date]) notedIndexes.add(i);
   });
 
-  const plugins = [makeNoteMarkerPlugin(() => notedIndexes)];
+  const plugins = [makeNoteMarkerPlugin(() => notedIndexes, mode === 'monthly')];
   if (mode === 'monthly') plugins.push(barValueLabelPluginDark);
   if (secondary) plugins.push(makeLineValueLabelPlugin(1, secondary.color));
 

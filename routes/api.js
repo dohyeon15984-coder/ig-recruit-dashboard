@@ -145,9 +145,9 @@ router.post('/posts/:id/tag', (req, res) => {
 // 오가닉 몫만 주기 때문에, 광고를 태운 게시물은 인스타그램 앱에서 보이는 진짜 합산 값을
 // 여기로 입력하면 이후 대시보드 전체에 그 값이 반영된다.
 router.post('/post-overrides', (req, res) => {
-  const { postId, reach, views, like_count, comments_count, saved, shares } = req.body || {};
+  const { postId, reach, views, like_count, comments_count, saved, shares, reposts } = req.body || {};
   if (!postId) return res.status(400).json({ error: 'postId가 필요해요.' });
-  const overrides = store.savePostOverride(postId, { reach, views, like_count, comments_count, saved, shares });
+  const overrides = store.savePostOverride(postId, { reach, views, like_count, comments_count, saved, shares, reposts });
   res.json({ postOverrides: overrides });
 });
 
@@ -174,7 +174,7 @@ router.delete('/post-collab/:postId', (req, res) => {
 // 사용자가 직접 한 건씩 입력해서 "전체 게시물"에 추가하는 기능.
 router.post('/manual-posts', (req, res) => {
   const { id, timestamp, caption, media_type, category, is_collab, collab_partner, permalink, thumbnail_url } = req.body || {};
-  const numericFields = ['like_count', 'comments_count', 'saved', 'shares', 'reach', 'views'];
+  const numericFields = ['like_count', 'comments_count', 'saved', 'shares', 'reposts', 'reach', 'views'];
   if (!timestamp) return res.status(400).json({ error: '날짜는 필수예요.' });
 
   const record = {

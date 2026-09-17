@@ -255,11 +255,12 @@ function renderLatestPostHero(posts) {
           <div><div class="hero-stat-value-sm">${(latest.like_count || 0).toLocaleString()}</div><div class="hero-stat-label">좋아요</div></div>
           <div><div class="hero-stat-value-sm">${(latest.saved || 0).toLocaleString()}</div><div class="hero-stat-label">저장</div></div>
           <div><div class="hero-stat-value-sm">${(latest.shares || 0).toLocaleString()}</div><div class="hero-stat-label">공유</div></div>
+          <div><div class="hero-stat-value-sm">${(latest.reposts || 0).toLocaleString()}</div><div class="hero-stat-label">리포스트</div></div>
           <div><div class="hero-stat-value-sm">${(latest.comments_count || 0).toLocaleString()}</div><div class="hero-stat-label">댓글</div></div>
         </div>
         <div class="hero-engagement-row">
           <span class="hero-engagement-value">참여율 ${(er * 100).toFixed(1)}%</span>
-          <span class="hero-engagement-note">— 도달 대비 얼마나 반응(좋아요·댓글·저장·공유)했는지 보여줘요</span>
+          <span class="hero-engagement-note">— 도달 대비 얼마나 반응(좋아요·댓글·저장·공유·리포스트)했는지 보여줘요</span>
         </div>
       </div>
       ${thumbHtml(latest, 'hero-post-thumb')}
@@ -373,7 +374,8 @@ function computeAdMetrics(campaign, postsById, history) {
   const comments = post ? post.comments_count || 0 : 0;
   const saved = post ? post.saved || 0 : 0;
   const shares = post ? post.shares || 0 : 0;
-  const engagement = likes + comments + saved + shares;
+  const reposts = post ? post.reposts || 0 : 0;
+  const engagement = likes + comments + saved + shares + reposts;
   const rate = post ? engagementRate(post) : 0;
   const cpm = reach ? (campaign.spend / reach) * 1000 : null;
   const cpe = engagement ? campaign.spend / engagement : null;
@@ -383,7 +385,7 @@ function computeAdMetrics(campaign, postsById, history) {
   const followerGrowth = followerStart != null && followerEnd != null ? followerEnd - followerStart : null;
   const costPerFollower = followerGrowth != null && followerGrowth > 0 ? campaign.spend / followerGrowth : null;
 
-  return { post, days, views, reach, likes, comments, saved, shares, engagement, rate, cpm, cpe, followerGrowth, costPerFollower };
+  return { post, days, views, reach, likes, comments, saved, shares, reposts, engagement, rate, cpm, cpe, followerGrowth, costPerFollower };
 }
 
 function renderAdsSummary(adCampaigns, posts, history) {
@@ -481,6 +483,7 @@ function renderAdCampaignsTable(adCampaigns, posts, history) {
         <td>${m.comments.toLocaleString()}</td>
         <td>${m.saved.toLocaleString()}</td>
         <td>${m.shares.toLocaleString()}</td>
+        <td>${m.reposts.toLocaleString()}</td>
         <td>${(m.rate * 100).toFixed(1)}%</td>
         <td>${m.cpm != null ? Math.round(m.cpm).toLocaleString() + '원' : '-'}</td>
         <td>${m.cpe != null ? Math.round(m.cpe).toLocaleString() + '원' : '-'}</td>
@@ -679,6 +682,7 @@ function renderPostsTable(data) {
         <td>${(p.comments_count || 0).toLocaleString()}</td>
         <td>${(p.saved || 0).toLocaleString()}</td>
         <td>${(p.shares || 0).toLocaleString()}</td>
+        <td>${(p.reposts || 0).toLocaleString()}</td>
         <td>${(p.reach || 0).toLocaleString()}</td>
       </tr>`;
     })
@@ -740,7 +744,7 @@ function openPostModal(postId) {
       <div class="modal-stat">
         <div class="modal-stat-label">참여율</div>
         <div class="modal-stat-value">${(er * 100).toFixed(1)}%</div>
-        <div class="modal-stat-formula">(좋아요+댓글+저장+공유) ÷ 도달</div>
+        <div class="modal-stat-formula">(좋아요+댓글+저장+공유+리포스트) ÷ 도달</div>
       </div>
       <div class="modal-stat">
         <div class="modal-stat-label">저장률</div>
@@ -753,8 +757,9 @@ function openPostModal(postId) {
       <div class="modal-stat"><div class="modal-stat-label">댓글</div><div class="modal-stat-value">${(post.comments_count || 0).toLocaleString()}</div></div>
       <div class="modal-stat"><div class="modal-stat-label">저장</div><div class="modal-stat-value">${(post.saved || 0).toLocaleString()}</div></div>
       <div class="modal-stat"><div class="modal-stat-label">공유</div><div class="modal-stat-value">${(post.shares || 0).toLocaleString()}</div></div>
+      <div class="modal-stat"><div class="modal-stat-label">리포스트</div><div class="modal-stat-value">${(post.reposts || 0).toLocaleString()}</div></div>
     </div>
-    <div class="modal-note">참여율은 도달한 사람 중 얼마나 많은 반응(좋아요·댓글·저장·공유)을 이끌어냈는지를 보여줘요. 숫자가 높을수록 도달 대비 콘텐츠 반응이 좋았다는 뜻이에요.</div>
+    <div class="modal-note">참여율은 도달한 사람 중 얼마나 많은 반응(좋아요·댓글·저장·공유·리포스트)을 이끌어냈는지를 보여줘요. 숫자가 높을수록 도달 대비 콘텐츠 반응이 좋았다는 뜻이에요.</div>
     ${post.permalink && post.permalink !== '#' ? `<a class="modal-link" href="${post.permalink}" target="_blank" rel="noopener">인스타그램에서 보기 →</a>` : ''}
     ${post.manual ? '<button type="button" id="manualPostDelete" class="btn-ghost post-override-actions-standalone">직접 추가한 게시물 삭제</button>' : ''}
 
@@ -787,6 +792,7 @@ function openPostModal(postId) {
         <div class="post-override-field"><label>댓글</label><input type="number" min="0" id="ovComments" value="${post.comments_count || 0}"></div>
         <div class="post-override-field"><label>저장</label><input type="number" min="0" id="ovSaved" value="${post.saved || 0}"></div>
         <div class="post-override-field"><label>공유</label><input type="number" min="0" id="ovShares" value="${post.shares || 0}"></div>
+        <div class="post-override-field"><label>리포스트</label><input type="number" min="0" id="ovReposts" value="${post.reposts || 0}"></div>
       </div>
       <div class="post-override-actions">
         ${post.has_override ? '<button type="button" id="postOverrideReset" class="btn-ghost">초기화(원래 값으로)</button>' : ''}
@@ -829,7 +835,8 @@ function openPostModal(postId) {
         like_count: document.getElementById('ovLikes').value,
         comments_count: document.getElementById('ovComments').value,
         saved: document.getElementById('ovSaved').value,
-        shares: document.getElementById('ovShares').value
+        shares: document.getElementById('ovShares').value,
+        reposts: document.getElementById('ovReposts').value
       })
     });
     await refresh();
@@ -1238,6 +1245,7 @@ function setupManualPostModal() {
         comments_count: document.getElementById('mpComments').value,
         saved: document.getElementById('mpSaved').value,
         shares: document.getElementById('mpShares').value,
+        reposts: document.getElementById('mpReposts').value,
         reach: document.getElementById('mpReach').value,
         views: document.getElementById('mpViews').value,
         permalink: document.getElementById('mpPermalink').value,
