@@ -496,13 +496,14 @@ const donutValueLabelPlugin = {
   }
 };
 
-function renderCategoryDonutChart(posts) {
+function renderCategoryDonutChart(posts, selectedCategory, onSliceClick) {
   const counts = new Map();
   posts.forEach((p) => {
     const key = p.category || CATEGORY_PLACEHOLDER;
     counts.set(key, (counts.get(key) || 0) + 1);
   });
   const entries = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  const labels = entries.map(([k]) => k);
 
   const ctx = document.getElementById('categoryDonutChart');
   if (categoryDonutChartInstance) categoryDonutChartInstance.destroy();
@@ -510,19 +511,27 @@ function renderCategoryDonutChart(posts) {
     type: 'doughnut',
     plugins: [donutValueLabelPlugin],
     data: {
-      labels: entries.map(([k]) => k),
+      labels,
       datasets: [
         {
           data: entries.map(([, v]) => v),
           backgroundColor: entries.map((_, i) => TABLEAU10[i % TABLEAU10.length]),
-          borderWidth: 2,
-          borderColor: '#fff'
+          borderWidth: labels.map((l) => (l === selectedCategory ? 3 : 2)),
+          borderColor: labels.map((l) => (l === selectedCategory ? '#1a2130' : '#fff')),
+          offset: labels.map((l) => (l === selectedCategory ? 16 : 0))
         }
       ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      onClick: (evt, elements) => {
+        if (!elements.length || !onSliceClick) return;
+        onSliceClick(labels[elements[0].index]);
+      },
+      onHover: (evt, elements) => {
+        if (evt.native && evt.native.target) evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+      },
       plugins: {
         legend: { position: 'right', labels: { boxWidth: 10, padding: 10, font: { size: 11 } } },
         tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${ctx.parsed}개` } }

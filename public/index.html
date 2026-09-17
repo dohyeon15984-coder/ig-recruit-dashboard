@@ -142,7 +142,10 @@
       <section class="ads-summary-row" id="adsSummaryRow"></section>
 
       <section class="panel">
-        <h2>광고 집행 등록</h2>
+        <div class="panel-header-row">
+          <h2>광고 집행 등록</h2>
+          <a class="ads-manager-link" href="https://adsmanager.facebook.com/adsmanager/manage/campaigns?act=1178523207574407&business_id=1173050761009012&nav_entry_point=ig_web_more_menu&date=2023-08-17_2026-09-16%2Cmaximum&nav_source=instagram_web" target="_blank" rel="noopener">메타 광고관리자에서 확인하기 →</a>
+        </div>
         <div class="panel-desc">메타 광고관리자에서 확인한 값을 직접 입력해주세요 — 이 값들로 아래 지표를 계산해드려요</div>
         <form id="adCampaignForm" class="ad-form">
           <div class="ad-form-field ad-form-field-wide">
@@ -223,7 +226,11 @@
             <thead>
               <tr>
                 <th>#</th>
-                <th data-sort="timestamp">날짜 <span class="sort-arrow"></span></th>
+                <th></th>
+                <th data-sort="timestamp">
+                  날짜 <span class="sort-arrow"></span>
+                  <select id="postsMonthFilter" class="granularity-select"></select>
+                </th>
                 <th>내용</th>
                 <th data-sort="media_type">유형 <span class="sort-arrow"></span></th>
                 <th>카테고리</th>

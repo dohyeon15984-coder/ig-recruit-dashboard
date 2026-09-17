@@ -2,6 +2,7 @@ node_modules/
 .env
 data/*.json
 !data/.gitkeep
+scripts/daily-sync-log.txt
 
 # 로고 원본/색상 추출용 참고 이미지 (실제 사용되는 건 logo.png 뿐)
 public/assets/logo-source.png

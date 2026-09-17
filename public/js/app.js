@@ -83,13 +83,12 @@ function renderMonthlyStatHero(elId, title, meaning, pairs) {
           : ''
       }
     </div>
-    <div class="hero-stat-meaning">${isPartial ? '월 단위 집계 (이번 달 진행 중)' : '월 단위 집계'}</div>
   `;
 }
 
 function renderViewsMonthlyHero(data) {
   const pairs = data.posts.filter((p) => p.views != null).map((p) => [p.timestamp.slice(0, 10), p.views]);
-  renderMonthlyStatHero('viewsMonthlyHero', '조회수', '이번 달 게시물의 노출된 총 횟수', pairs);
+  renderMonthlyStatHero('viewsMonthlyHero', '조회수', '이번 달 발행된 게시물의 노출된 총 횟수', pairs);
 }
 
 function renderReachMonthlyHero(data) {
@@ -134,6 +133,8 @@ const state = {
   filters: { days: 'all', mediaType: 'ALL', category: 'ALL', search: '' },
   sort: { field: 'timestamp', dir: 'desc' },
   adSort: { field: 'startDate', dir: 'desc' },
+  postsMonthFilter: 'all',
+  postsCategoryFilter: 'all',
   data: null
 };
 
@@ -553,17 +554,56 @@ function setupAdCampaignForm() {
   });
 }
 
+// 게시물 날짜에서 뽑아낸 월(YYYY-MM) 목록으로 필터 드롭다운을 채운다.
+function populatePostsMonthFilter(posts) {
+  const select = document.getElementById('postsMonthFilter');
+  const months = [...new Set(posts.map((p) => p.timestamp.slice(0, 7)))].sort((a, b) => b.localeCompare(a));
+  const currentValue = state.postsMonthFilter;
+
+  select.innerHTML =
+    '<option value="all">전체</option>' +
+    months
+      .map((m) => {
+        const [y, mo] = m.split('-');
+        return `<option value="${m}">${y}년 ${Number(mo)}월</option>`;
+      })
+      .join('');
+  select.value = months.includes(currentValue) || currentValue === 'all' ? currentValue : 'all';
+}
+
+// 카테고리 도넛 차트 클릭으로 선택한 카테고리에 해당하는 게시물만 걸러낸다.
+function filterPostsByCategory(posts, categoryFilter) {
+  if (categoryFilter === 'all') return posts;
+  if (categoryFilter === CATEGORY_PLACEHOLDER) return posts.filter((p) => !p.category);
+  return posts.filter((p) => p.category === categoryFilter);
+}
+
+// 도넛 차트를 그리고, 조각을 클릭하면 같은 카테고리를 다시 클릭했을 때 전체로 되돌아가도록
+// 토글하면서 도넛(하이라이트)과 전체 게시물 표를 함께 다시 그린다.
+function renderCategoryDonutSection(posts) {
+  const selected = state.postsCategoryFilter === 'all' ? null : state.postsCategoryFilter;
+  renderCategoryDonutChart(posts, selected, (category) => {
+    state.postsCategoryFilter = state.postsCategoryFilter === category ? 'all' : category;
+    renderCategoryDonutSection(posts);
+    if (state.data) renderPostsTable(state.data);
+  });
+}
+
 function renderPostsTable(data) {
   const tbody = document.getElementById('postsTableBody');
-  const sorted = sortPosts(data.posts);
+  populatePostsMonthFilter(data.posts);
+  const monthFiltered =
+    state.postsMonthFilter === 'all' ? data.posts : data.posts.filter((p) => p.timestamp.slice(0, 7) === state.postsMonthFilter);
+  const categoryFiltered = filterPostsByCategory(monthFiltered, state.postsCategoryFilter);
+  const sorted = sortPosts(categoryFiltered);
   updateSortArrows();
 
   const meta = document.getElementById('postsMeta');
   if (data.meta) {
     meta.textContent =
-      data.meta.filteredPosts === data.meta.totalPosts
+      state.postsMonthFilter === 'all' && state.postsCategoryFilter === 'all' && data.meta.filteredPosts === data.meta.totalPosts
         ? `전체 ${data.meta.totalPosts}개`
-        : `전체 ${data.meta.totalPosts}개 중 ${data.meta.filteredPosts}개 표시`;
+        : `전체 ${data.meta.totalPosts}개 중 ${sorted.length}개 표시`;
   }
 
   tbody.innerHTML = sorted
@@ -844,7 +884,7 @@ function renderAll(data) {
   );
   renderMediaTypeChart(data.posts);
   renderCategoryChart(data.posts);
-  renderCategoryDonutChart(data.posts);
+  renderCategoryDonutSection(data.posts);
 }
 
 const DEFAULT_POST_SORT = { field: 'timestamp', dir: 'desc' };
@@ -860,6 +900,13 @@ function setupSortableHeaders() {
       }
       renderPostsTable(state.data);
     });
+  });
+
+  const monthFilter = document.getElementById('postsMonthFilter');
+  monthFilter.addEventListener('click', (e) => e.stopPropagation());
+  monthFilter.addEventListener('change', (e) => {
+    state.postsMonthFilter = e.target.value;
+    if (state.data) renderPostsTable(state.data);
   });
 }
 
