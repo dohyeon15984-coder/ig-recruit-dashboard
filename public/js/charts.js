@@ -314,7 +314,7 @@ function makeNoteMarkerPlugin(getNotedIndexes) {
   };
 }
 
-function renderTrendChart(canvasId, instanceKey, series, mode, label, color, notesByPeriod, onPointClick) {
+function renderTrendChart(canvasId, instanceKey, series, mode, label, color, notesByPeriod, onPointClick, secondary) {
   const ctx = document.getElementById(canvasId);
   if (trendChartInstances[instanceKey]) trendChartInstances[instanceKey].destroy();
   trendChartSeries[instanceKey] = series;
@@ -331,21 +331,38 @@ function renderTrendChart(canvasId, instanceKey, series, mode, label, color, not
   // y축 최댓값을 실제 데이터보다 넉넉하게 잡아 라벨 자리를 남겨둔다.
   const maxValue = Math.max(0, ...series.map((s) => s.value).filter((v) => v != null));
 
+  const datasets = [
+    {
+      label,
+      data: series.map((s) => s.value),
+      backgroundColor: color + 'b3',
+      hoverBackgroundColor: color,
+      borderRadius: 5,
+      maxBarThickness: mode === 'daily' ? 16 : 46
+    }
+  ];
+
+  if (secondary) {
+    datasets.push({
+      type: 'line',
+      label: secondary.label,
+      data: secondary.series.map((s) => s.value),
+      borderColor: secondary.color,
+      backgroundColor: secondary.color,
+      borderWidth: 2,
+      pointRadius: 3,
+      pointHoverRadius: 5,
+      tension: 0.25,
+      yAxisID: 'y1'
+    });
+  }
+
   trendChartInstances[instanceKey] = new Chart(ctx, {
     type: 'bar',
     plugins,
     data: {
       labels: series.map((s) => (mode === 'daily' ? s.date.slice(5).replace('-', '/') : shortMonthLabel(s.date))),
-      datasets: [
-        {
-          label,
-          data: series.map((s) => s.value),
-          backgroundColor: color + 'b3',
-          hoverBackgroundColor: color,
-          borderRadius: 5,
-          maxBarThickness: mode === 'daily' ? 16 : 46
-        }
-      ]
+      datasets
     },
     options: {
       responsive: true,
@@ -359,12 +376,23 @@ function renderTrendChart(canvasId, instanceKey, series, mode, label, color, not
         if (evt.native && evt.native.target) evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
       },
       plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { label: (ctx) => `${label} ${ctx.parsed.y.toLocaleString()}` } }
+        legend: secondary ? { display: true, position: 'top', align: 'end', labels: { boxWidth: 10, font: { size: 11 } } } : { display: false },
+        tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label} ${ctx.parsed.y.toLocaleString()}` } }
       },
       scales: {
         y: { beginAtZero: false, suggestedMax: maxValue * 1.18, grid: { color: '#eef0f5' } },
-        x: { grid: { display: false }, ticks: { maxRotation: mode === 'daily' ? 45 : 0 } }
+        x: { grid: { display: false }, ticks: { maxRotation: mode === 'daily' ? 45 : 0 } },
+        ...(secondary
+          ? {
+              y1: {
+                position: 'right',
+                beginAtZero: true,
+                grid: { display: false },
+                ticks: { precision: 0 },
+                suggestedMax: Math.max(0, ...secondary.series.map((s) => s.value).filter((v) => v != null)) * 1.3 || 1
+              }
+            }
+          : {})
       }
     }
   });
@@ -404,9 +432,25 @@ function dailySeriesSumFromPosts(posts, field, days = 30) {
   return series;
 }
 
+// 조회수 막대와 정확히 같은 x축(달/날짜) 구간에 맞춰 그 구간에 올라온 게시물 개수를 센다.
+// 별도로 집계하면 구간이 어긋날 수 있어, 기준(조회수) 시리즈의 date 목록을 그대로 재사용한다.
+function postCountSeriesAligned(baseSeries, posts, mode) {
+  const counts = new Map();
+  for (const p of posts) {
+    const key = mode === 'daily' ? p.timestamp.slice(0, 10) : p.timestamp.slice(0, 7);
+    counts.set(key, (counts.get(key) || 0) + 1);
+  }
+  return baseSeries.map((s) => ({ date: s.date, value: counts.get(s.date) || 0 }));
+}
+
 function renderViewsOnlyChart(posts, mode, notesByPeriod, onPointClick) {
   const series = mode === 'daily' ? dailySeriesSumFromPosts(posts, 'views') : monthlySeriesSumFromPosts(posts, 'views');
-  renderTrendChart('viewsOnlyChart', 'views', series, mode, '조회수', BRAND_TEAL, notesByPeriod, onPointClick);
+  const postCountSeries = postCountSeriesAligned(series, posts, mode);
+  renderTrendChart('viewsOnlyChart', 'views', series, mode, '조회수', BRAND_TEAL, notesByPeriod, onPointClick, {
+    series: postCountSeries,
+    label: '게시물 수',
+    color: '#c8961e'
+  });
 }
 
 function renderMediaTypeChart(posts) {
