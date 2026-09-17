@@ -571,6 +571,25 @@ function populatePostsMonthFilter(posts) {
   select.value = months.includes(currentValue) || currentValue === 'all' ? currentValue : 'all';
 }
 
+// 전체 게시물 표의 "카테고리" 열 헤더 드롭다운을 채운다. 실제 필터링 외에
+// 맨 아래 두 항목으로 카테고리 추가/관리(이름변경·삭제)도 여기서 바로 할 수 있게 한다.
+function populatePostsCategoryFilter(categories) {
+  const select = document.getElementById('postsCategoryFilterSelect');
+  const currentValue = state.postsCategoryFilter;
+
+  select.innerHTML =
+    '<option value="all">전체</option>' +
+    categories.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('') +
+    `<option value="${CATEGORY_PLACEHOLDER}">${CATEGORY_PLACEHOLDER}</option>` +
+    '<option disabled>──────────</option>' +
+    '<option value="__add__">＋ 새 카테고리 추가</option>' +
+    '<option value="__manage__">🛠 카테고리 관리</option>';
+
+  select.value = currentValue === 'all' || categories.includes(currentValue) || currentValue === CATEGORY_PLACEHOLDER
+    ? currentValue
+    : 'all';
+}
+
 // 카테고리 도넛 차트 클릭으로 선택한 카테고리에 해당하는 게시물만 걸러낸다.
 function filterPostsByCategory(posts, categoryFilter) {
   if (categoryFilter === 'all') return posts;
@@ -592,6 +611,7 @@ function renderCategoryDonutSection(posts) {
 function renderPostsTable(data) {
   const tbody = document.getElementById('postsTableBody');
   populatePostsMonthFilter(data.posts);
+  populatePostsCategoryFilter(data.categories || []);
   const monthFiltered =
     state.postsMonthFilter === 'all' ? data.posts : data.posts.filter((p) => p.timestamp.slice(0, 7) === state.postsMonthFilter);
   const categoryFiltered = filterPostsByCategory(monthFiltered, state.postsCategoryFilter);
@@ -622,9 +642,6 @@ function renderPostsTable(data) {
           <select class="tag-select" data-post-id="${p.id}">
             <option value="">${CATEGORY_PLACEHOLDER}</option>
             ${options}
-            <option disabled>──────────</option>
-            <option value="__add__">＋ 새 카테고리 추가</option>
-            <option value="__manage__">🛠 카테고리 관리</option>
           </select>
         </td>
         <td>${(p.like_count || 0).toLocaleString()}</td>
@@ -639,31 +656,8 @@ function renderPostsTable(data) {
   tbody.querySelectorAll('.tag-select').forEach((select) => {
     select.addEventListener('click', (e) => e.stopPropagation());
     select.addEventListener('change', async (e) => {
-      const value = e.target.value;
-
-      if (value === '__add__') {
-        const name = window.prompt('추가할 카테고리 이름을 입력하세요');
-        if (name && name.trim()) {
-          const res = await fetch('/api/categories', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: name.trim() })
-          });
-          const json = await res.json();
-          if (!res.ok) alert(json.error || '카테고리 추가에 실패했어요.');
-        }
-        await refresh();
-        return;
-      }
-
-      if (value === '__manage__') {
-        openCategoryManageModal();
-        await refresh();
-        return;
-      }
-
       const postId = e.target.dataset.postId;
-      const category = value || null;
+      const category = e.target.value || null;
       await fetch(`/api/posts/${postId}/tag`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -933,6 +927,39 @@ function setupSortableHeaders() {
   monthFilter.addEventListener('change', (e) => {
     state.postsMonthFilter = e.target.value;
     if (state.data) renderPostsTable(state.data);
+  });
+
+  const categoryFilter = document.getElementById('postsCategoryFilterSelect');
+  categoryFilter.addEventListener('click', (e) => e.stopPropagation());
+  categoryFilter.addEventListener('change', async (e) => {
+    const value = e.target.value;
+
+    if (value === '__add__') {
+      const name = window.prompt('추가할 카테고리 이름을 입력하세요');
+      if (name && name.trim()) {
+        const res = await fetch('/api/categories', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: name.trim() })
+        });
+        const json = await res.json();
+        if (!res.ok) alert(json.error || '카테고리 추가에 실패했어요.');
+      }
+      await refresh();
+      return;
+    }
+
+    if (value === '__manage__') {
+      openCategoryManageModal();
+      await refresh();
+      return;
+    }
+
+    state.postsCategoryFilter = value;
+    if (state.data) {
+      renderCategoryDonutSection(state.data.posts);
+      renderPostsTable(state.data);
+    }
   });
 }
 
