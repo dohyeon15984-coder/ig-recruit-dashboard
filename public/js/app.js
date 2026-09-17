@@ -412,7 +412,7 @@ function renderAdsSummary(adCampaigns, posts, history) {
     <div class="ad-stat-card"><div class="ad-stat-label">총 광고 집행 건수</div><div class="ad-stat-value">${adCampaigns.length}건</div></div>
     <div class="ad-stat-card"><div class="ad-stat-label">누적 광고비</div><div class="ad-stat-value">${Math.round(totalSpend).toLocaleString()}원</div></div>
     <div class="ad-stat-card"><div class="ad-stat-label">게시물당 평균 광고비</div><div class="ad-stat-value">${Math.round(avgSpendPerPost).toLocaleString()}원</div></div>
-    <div class="ad-stat-card"><div class="ad-stat-label"><span class="info-hint" title="CPM(Cost Per Mille): 도달 1,000회당 광고비">평균 CPM</span></div><div class="ad-stat-value">${avgCpm != null ? Math.round(avgCpm).toLocaleString() + '원' : '-'}</div></div>
+    <div class="ad-stat-card"><div class="ad-stat-label"><span class="info-hint" data-tooltip="CPM(Cost Per Mille): 도달 1,000회당 광고비">평균 CPM</span></div><div class="ad-stat-value">${avgCpm != null ? Math.round(avgCpm).toLocaleString() + '원' : '-'}</div></div>
   `;
 }
 

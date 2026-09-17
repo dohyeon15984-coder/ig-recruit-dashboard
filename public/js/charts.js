@@ -345,8 +345,10 @@ function makeNoteMarkerPlugin(getNotedIndexes, hasValueLabel) {
           ctx.font = "700 12px 'Pretendard', sans-serif";
           const textWidth = ctx.measureText(text).width;
           ctx.restore();
-          markerX = point.x + textWidth / 2 + 12;
           markerY = point.y - 18;
+          const rightX = point.x + textWidth / 2 + 12;
+          // 맨 오른쪽 막대처럼 오른쪽에 자리가 없으면(오른쪽 y축 눈금과 겹치면) 숫자 왼쪽에 그린다.
+          markerX = rightX + 5 > chart.chartArea.right ? point.x - textWidth / 2 - 12 : rightX;
         }
 
         ctx.save();
