@@ -39,7 +39,8 @@ async function main() {
     adCampaigns: readJson('adCampaigns.json', []),
     postOverrides: readJson('postOverrides.json', {}),
     categories: readJson('categories.json', null),
-    postCollabInfo: readJson('postCollabInfo.json', {})
+    postCollabInfo: readJson('postCollabInfo.json', {}),
+    manualPosts: readJson('manualPosts.json', [])
   };
 
   console.log(`${remoteUrl.replace(/\/$/, '')}/api/admin/import 로 전송 중...`);

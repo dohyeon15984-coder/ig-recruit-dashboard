@@ -218,7 +218,10 @@
 
       <section class="panel">
         <div class="table-header">
-          <h2>전체 게시물</h2>
+          <div class="table-header-left">
+            <h2>전체 게시물</h2>
+            <button type="button" id="addManualPostBtn" class="btn-manual-post">+ 게시물 직접 추가</button>
+          </div>
           <span id="postsMeta" class="posts-meta"></span>
         </div>
         <div class="table-wrap">
@@ -282,6 +285,77 @@
       <button type="submit" class="btn-primary">추가</button>
     </form>
     <div id="categoryManageList" class="category-manage-list"></div>
+  </div>
+</div>
+
+<div id="manualPostModal" class="modal-backdrop" hidden>
+  <div class="modal-card modal-card-sm">
+    <button id="manualPostModalClose" class="modal-close" aria-label="닫기">✕</button>
+    <div class="note-modal-title">게시물 직접 추가</div>
+    <div class="post-override-desc">메타 API가 자동으로 못 가져오는 게시물(예: 다른 계정이 원작성자인 콜라보 게시물)을 직접 입력해서 전체 게시물에 추가해요. 저장하면 표·요약·차트 등 모든 곳에 실제 게시물과 똑같이 반영돼요.</div>
+    <form id="manualPostForm" class="ad-form">
+      <div class="ad-form-field">
+        <label for="mpTimestamp">날짜</label>
+        <input type="date" id="mpTimestamp" required>
+      </div>
+      <div class="ad-form-field">
+        <label for="mpMediaType">유형</label>
+        <select id="mpMediaType">
+          <option value="CAROUSEL_ALBUM">카드뉴스</option>
+          <option value="IMAGE">이미지</option>
+          <option value="VIDEO">릴스/영상</option>
+        </select>
+      </div>
+      <div class="ad-form-field">
+        <label for="mpCategory">카테고리</label>
+        <select id="mpCategory"></select>
+      </div>
+      <div class="ad-form-field ad-form-field-wide">
+        <label for="mpCaption">내용(캡션)</label>
+        <input type="text" id="mpCaption" placeholder="예: [Vol.78 깊이] 인사팀 몰래.. 서합 꿀팁 공개!">
+      </div>
+      <div class="ad-form-field">
+        <label for="mpLikes">좋아요</label>
+        <input type="number" min="0" id="mpLikes" value="0">
+      </div>
+      <div class="ad-form-field">
+        <label for="mpComments">댓글</label>
+        <input type="number" min="0" id="mpComments" value="0">
+      </div>
+      <div class="ad-form-field">
+        <label for="mpSaved">저장</label>
+        <input type="number" min="0" id="mpSaved" value="0">
+      </div>
+      <div class="ad-form-field">
+        <label for="mpShares">공유</label>
+        <input type="number" min="0" id="mpShares" value="0">
+      </div>
+      <div class="ad-form-field">
+        <label for="mpReach">도달</label>
+        <input type="number" min="0" id="mpReach" value="0">
+      </div>
+      <div class="ad-form-field">
+        <label for="mpViews">조회수</label>
+        <input type="number" min="0" id="mpViews" value="0">
+      </div>
+      <div class="ad-form-field ad-form-field-wide">
+        <label for="mpPermalink">인스타그램 링크(선택)</label>
+        <input type="text" id="mpPermalink" placeholder="https://www.instagram.com/p/...">
+      </div>
+      <div class="ad-form-field ad-form-field-wide">
+        <label for="mpThumbnail">썸네일 이미지 URL(선택)</label>
+        <input type="text" id="mpThumbnail" placeholder="https://...">
+      </div>
+      <label class="post-collab-checkbox">
+        <input type="checkbox" id="mpIsCollab">
+        공동 게시물이에요
+      </label>
+      <div class="ad-form-field ad-form-field-wide">
+        <label for="mpCollabPartner">협업 계정</label>
+        <input type="text" id="mpCollabPartner" placeholder="예: @morethan.look">
+      </div>
+      <button type="submit" class="btn-primary">추가</button>
+    </form>
   </div>
 </div>
 

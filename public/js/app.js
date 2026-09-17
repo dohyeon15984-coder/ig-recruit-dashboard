@@ -653,7 +653,7 @@ function renderPostsTable(data) {
         <td>${index + 1}</td>
         <td>${thumbHtml(p, 'row-thumb')}</td>
         <td>${new Date(p.timestamp).toLocaleDateString('ko-KR')}</td>
-        <td class="caption-cell">${escapeHtml(p.caption || '').slice(0, 60)}</td>
+        <td class="caption-cell">${p.manual ? '<span class="manual-post-badge">직접입력</span> ' : ''}${escapeHtml(p.caption || '').slice(0, 60)}</td>
         <td>
           ${MEDIA_TYPE_LABEL[p.media_type] || p.media_type}
           <label class="row-collab-toggle info-hint" data-tooltip="다른 계정과 함께 올린 공동 게시물이면 체크하세요">
@@ -726,7 +726,7 @@ function openPostModal(postId) {
     ${thumbHtml(post, 'modal-thumb')}
     <div class="modal-title">${escapeHtml(post.caption || '(캡션 없음)')}</div>
     <div class="modal-meta">
-      ${new Date(post.timestamp).toLocaleString('ko-KR')} · ${MEDIA_TYPE_LABEL[post.media_type] || post.media_type}${post.is_collab ? ` · 공동 게시물${post.collab_partner ? ` (${escapeHtml(post.collab_partner)})` : ''}` : ''}${post.category ? ' · ' + post.category : ' · 카테고리 미지정'}
+      ${new Date(post.timestamp).toLocaleString('ko-KR')} · ${MEDIA_TYPE_LABEL[post.media_type] || post.media_type}${post.is_collab ? ` · 공동 게시물${post.collab_partner ? ` (${escapeHtml(post.collab_partner)})` : ''}` : ''}${post.category ? ' · ' + post.category : ' · 카테고리 미지정'}${post.manual ? ' · 직접 추가한 게시물' : ''}
     </div>
     <div class="modal-stats">
       <div class="modal-stat">
@@ -748,6 +748,7 @@ function openPostModal(postId) {
     </div>
     <div class="modal-note">참여율은 도달한 사람 중 얼마나 많은 반응(좋아요·댓글·저장·공유)을 이끌어냈는지를 보여줘요. 숫자가 높을수록 도달 대비 콘텐츠 반응이 좋았다는 뜻이에요.</div>
     ${post.permalink && post.permalink !== '#' ? `<a class="modal-link" href="${post.permalink}" target="_blank" rel="noopener">인스타그램에서 보기 →</a>` : ''}
+    ${post.manual ? '<button type="button" id="manualPostDelete" class="btn-ghost post-override-actions-standalone">직접 추가한 게시물 삭제</button>' : ''}
 
     <div class="post-override-section">
       <div class="post-override-title">공동 게시물(콜라보) 정보</div>
@@ -786,6 +787,16 @@ function openPostModal(postId) {
     </div>
   `;
   modal.hidden = false;
+
+  const manualDeleteBtn = document.getElementById('manualPostDelete');
+  if (manualDeleteBtn) {
+    manualDeleteBtn.addEventListener('click', async () => {
+      if (!confirm('직접 추가한 이 게시물을 삭제할까요?')) return;
+      await fetch(`/api/manual-posts/${post.id}`, { method: 'DELETE' });
+      closePostModal();
+      await refresh();
+    });
+  }
 
   document.getElementById('postCollabSave').addEventListener('click', async () => {
     const isCollab = document.getElementById('collabIsCollab').checked;
@@ -1177,6 +1188,66 @@ function setupCategoryManageModal() {
   });
 }
 
+function openManualPostModal() {
+  const form = document.getElementById('manualPostForm');
+  form.reset();
+  document.getElementById('mpTimestamp').value = new Date().toISOString().slice(0, 10);
+
+  const categorySelect = document.getElementById('mpCategory');
+  const categories = state.data?.categories || [];
+  categorySelect.innerHTML =
+    `<option value="">${CATEGORY_PLACEHOLDER}</option>` + categories.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+
+  document.getElementById('manualPostModal').hidden = false;
+}
+
+function closeManualPostModal() {
+  document.getElementById('manualPostModal').hidden = true;
+}
+
+function setupManualPostModal() {
+  document.getElementById('addManualPostBtn').addEventListener('click', openManualPostModal);
+  document.getElementById('manualPostModalClose').addEventListener('click', closeManualPostModal);
+  document.getElementById('manualPostModal').addEventListener('click', (e) => {
+    if (e.target.id === 'manualPostModal') closeManualPostModal();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !document.getElementById('manualPostModal').hidden) closeManualPostModal();
+  });
+
+  document.getElementById('manualPostForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const isCollab = document.getElementById('mpIsCollab').checked;
+    const res = await fetch('/api/manual-posts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        timestamp: document.getElementById('mpTimestamp').value,
+        media_type: document.getElementById('mpMediaType').value,
+        category: document.getElementById('mpCategory').value || null,
+        caption: document.getElementById('mpCaption').value,
+        like_count: document.getElementById('mpLikes').value,
+        comments_count: document.getElementById('mpComments').value,
+        saved: document.getElementById('mpSaved').value,
+        shares: document.getElementById('mpShares').value,
+        reach: document.getElementById('mpReach').value,
+        views: document.getElementById('mpViews').value,
+        permalink: document.getElementById('mpPermalink').value,
+        thumbnail_url: document.getElementById('mpThumbnail').value,
+        is_collab: isCollab,
+        collab_partner: isCollab ? document.getElementById('mpCollabPartner').value : ''
+      })
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      alert(json.error || '게시물 추가에 실패했어요.');
+      return;
+    }
+    closeManualPostModal();
+    await refresh();
+  });
+}
+
 function setupModal() {
   document.getElementById('postModalClose').addEventListener('click', closePostModal);
   document.getElementById('postModal').addEventListener('click', (e) => {
@@ -1228,6 +1299,7 @@ async function init() {
   setupModal();
   setupNoteModal();
   setupCategoryManageModal();
+  setupManualPostModal();
   setupTabs();
   setupTrendGranularityControls();
   setupAdCampaignForm();

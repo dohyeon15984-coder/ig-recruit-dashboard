@@ -24,7 +24,9 @@ function tokenStatus() {
 function buildDashboardPayload(query = {}) {
   const live = isLiveMode();
 
-  const allPosts = live ? store.applyPostCollabInfo(store.applyPostOverrides(store.loadPosts())) : DEMO_POSTS;
+  const allPosts = live
+    ? store.applyPostCollabInfo(store.applyPostOverrides([...store.loadPosts(), ...store.loadManualPosts()]))
+    : DEMO_POSTS;
   const allHistory = live ? store.loadHistory() : DEMO_HISTORY;
   const settings = live ? store.loadSettings() : DEMO_SETTINGS;
 
@@ -153,6 +155,38 @@ router.delete('/post-collab/:postId', (req, res) => {
   res.json({ postCollabInfo: info });
 });
 
+// Meta API가 절대 내려주지 않는 게시물(원작성자가 다른 계정인 콜라보 게시물 등)을
+// 사용자가 직접 한 건씩 입력해서 "전체 게시물"에 추가하는 기능.
+router.post('/manual-posts', (req, res) => {
+  const { id, timestamp, caption, media_type, category, is_collab, collab_partner, permalink, thumbnail_url } = req.body || {};
+  const numericFields = ['like_count', 'comments_count', 'saved', 'shares', 'reach', 'views'];
+  if (!timestamp) return res.status(400).json({ error: '날짜는 필수예요.' });
+
+  const record = {
+    id,
+    timestamp: new Date(timestamp).toISOString(),
+    caption: caption || '',
+    media_type: media_type || 'IMAGE',
+    category: category || null,
+    is_collab: Boolean(is_collab),
+    collab_partner: is_collab ? (collab_partner || '').trim() : null,
+    permalink: permalink || null,
+    thumbnail_url: thumbnail_url || null
+  };
+  for (const key of numericFields) {
+    const n = Number(req.body?.[key]);
+    record[key] = Number.isFinite(n) ? n : 0;
+  }
+
+  const saved = store.saveManualPost(record);
+  res.json({ post: saved });
+});
+
+router.delete('/manual-posts/:id', (req, res) => {
+  const posts = store.deleteManualPost(req.params.id);
+  res.json({ manualPosts: posts });
+});
+
 // 추이 차트의 특정 시점(예: 튀는 지점)에 왜 그랬는지 메모를 남기는 기능.
 router.post('/chart-notes', (req, res) => {
   const { chartKey, period, text } = req.body || {};
@@ -231,7 +265,8 @@ router.post('/admin/import', (req, res) => {
     return res.status(401).json({ error: '인증에 실패했어요.' });
   }
 
-  const { posts, history, demographics, chartNotes, adCampaigns, postOverrides, categories, postCollabInfo } = req.body || {};
+  const { posts, history, demographics, chartNotes, adCampaigns, postOverrides, categories, postCollabInfo, manualPosts } =
+    req.body || {};
   if (Array.isArray(posts)) store.importPosts(posts);
   if (Array.isArray(history)) store.mergeHistorySnapshots(history);
   if (demographics) store.saveDemographics(demographics);
@@ -247,6 +282,9 @@ router.post('/admin/import', (req, res) => {
   if (Array.isArray(categories)) store.saveCategories(categories);
   if (postCollabInfo && typeof postCollabInfo === 'object') {
     for (const [postId, fields] of Object.entries(postCollabInfo)) store.savePostCollabInfo(postId, fields);
+  }
+  if (Array.isArray(manualPosts)) {
+    for (const post of manualPosts) store.saveManualPost(post);
   }
 
   res.json({ ok: true, importedPosts: posts?.length ?? 0, importedHistory: history?.length ?? 0 });

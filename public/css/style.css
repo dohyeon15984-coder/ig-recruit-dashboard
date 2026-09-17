@@ -590,6 +590,20 @@ h2 { letter-spacing: -0.01em; }
 
 .table-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
 .table-header h2 { margin: 0; }
+.table-header-left { display: flex; align-items: baseline; gap: 12px; }
+
+.btn-manual-post {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--brand-teal-light);
+  border: 1px solid var(--brand-teal-light);
+  border-radius: 999px;
+  padding: 5px 12px;
+  background: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-manual-post:hover { background: rgba(34, 164, 136, 0.08); }
 .posts-meta { font-size: 12px; color: var(--text-mute); }
 
 .table-wrap { overflow-x: auto; }
@@ -649,6 +663,17 @@ th[data-ad-sort]:hover { color: var(--text); }
 .sort-arrow { display: inline-block; width: 10px; font-size: 10px; }
 
 td.caption-cell { white-space: normal; max-width: 320px; }
+
+.manual-post-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--brand-teal-light);
+  border: 1px solid var(--brand-teal-light);
+  border-radius: 4px;
+  padding: 1px 5px;
+  vertical-align: middle;
+}
 
 tbody tr { cursor: pointer; transition: background 0.1s ease; }
 tbody tr:hover { background: var(--surface-alt); }
@@ -866,3 +891,17 @@ select.tag-select {
 .post-override-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
 .post-override-actions .btn-ghost { background: transparent; color: var(--text-mute); border: 1px solid var(--border); }
 .post-override-actions .btn-ghost:hover { background: var(--surface-alt); }
+
+.post-override-actions-standalone {
+  display: block;
+  margin: 10px 0 0;
+  background: transparent;
+  color: var(--bad);
+  border: 1px solid var(--border);
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.post-override-actions-standalone:hover { background: rgba(200, 30, 44, 0.08); }
