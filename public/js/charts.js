@@ -70,23 +70,34 @@ const barValueLabelPluginDark = makeBarValueLabelPlugin('#33403a');
 
 // 보조 라인 데이터셋(예: 게시물 수) 위에 값을 표시하는 플러그인. 여러 데이터셋이 있는
 // 콤보 차트에서 특정 datasetIndex 하나에만 적용하기 위해 인덱스를 받는다.
+// 라인의 점이 막대 꼭대기(막대 값 라벨이 그려지는 자리)와 가까우면 라벨을 점 아래쪽으로
+// 내려서 겹치지 않게 하고, 막대 색 위에서도 읽히도록 흰색 테두리를 둘러 그린다.
 function makeLineValueLabelPlugin(datasetIndex, textColor) {
   return {
     id: `lineValueLabel${datasetIndex}`,
     afterDatasetsDraw(chart) {
       const meta = chart.getDatasetMeta(datasetIndex);
       if (!meta) return;
+      const barMeta = chart.getDatasetMeta(0);
       const { ctx } = chart;
       const data = chart.data.datasets[datasetIndex].data;
       meta.data.forEach((point, index) => {
         const value = data[index];
         if (value == null) return;
+        const barPoint = barMeta.data[index];
+        const nearBarTop = barPoint && Math.abs(point.y - barPoint.y) < 30;
+        const text = value.toLocaleString();
+        const y = nearBarTop ? point.y + 16 : point.y - 8;
+
         ctx.save();
-        ctx.fillStyle = textColor;
         ctx.font = "700 11px 'Pretendard', sans-serif";
         ctx.textAlign = 'center';
-        ctx.textBaseline = 'bottom';
-        ctx.fillText(value.toLocaleString(), point.x, point.y - 8);
+        ctx.textBaseline = nearBarTop ? 'top' : 'bottom';
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.strokeText(text, point.x, y);
+        ctx.fillStyle = textColor;
+        ctx.fillText(text, point.x, y);
         ctx.restore();
       });
     }
