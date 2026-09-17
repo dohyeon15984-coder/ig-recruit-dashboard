@@ -588,6 +588,7 @@ function populatePostsCategoryFilter(categories) {
   select.value = currentValue === 'all' || categories.includes(currentValue) || currentValue === CATEGORY_PLACEHOLDER
     ? currentValue
     : 'all';
+  sizeSelectToSelectedText(select);
 }
 
 // 카테고리 도넛 차트 클릭으로 선택한 카테고리에 해당하는 게시물만 걸러낸다.
@@ -606,6 +607,21 @@ function renderCategoryDonutSection(posts) {
     renderCategoryDonutSection(posts);
     if (state.data) renderPostsTable(state.data);
   });
+}
+
+// select는 옵션 전체(가장 긴 옵션 텍스트) 기준으로 폭이 고정되는 브라우저 기본 동작 때문에,
+// "전체"처럼 짧은 값이 선택돼 있어도 "🛠 카테고리 관리"같은 긴 옵션 때문에 폭이 넓게 남는다.
+// 실제 선택된 텍스트 길이만큼만 차지하도록 캔버스로 폭을 재서 매번 직접 지정해준다.
+const selectMeasureCanvas = document.createElement('canvas');
+function sizeSelectToSelectedText(select, arrowReserve = 22) {
+  const cs = getComputedStyle(select);
+  const ctx = selectMeasureCanvas.getContext('2d');
+  ctx.font = `${cs.fontSize} ${cs.fontFamily}`;
+  const text = select.options[select.selectedIndex]?.textContent || '';
+  const textWidth = ctx.measureText(text).width;
+  const horizontalChrome =
+    parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) + parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth);
+  select.style.width = `${Math.ceil(textWidth + horizontalChrome + arrowReserve)}px`;
 }
 
 function renderPostsTable(data) {
