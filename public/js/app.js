@@ -101,7 +101,7 @@ function renderViewsMonthlyHero(data) {
 
 function renderReachMonthlyHero(data) {
   const pairs = data.history.filter((h) => h.reach != null).map((h) => [h.date, h.reach]);
-  renderMonthlyStatHero('reachMonthlyHero', '도달수', '본 사람 수(중복 제외)', pairs);
+  renderMonthlyStatHero('reachMonthlyHero', '도달수', '게시물을 본 사람 수(중복 제외)', pairs);
 }
 
 function renderDemographics(data) {
@@ -249,7 +249,7 @@ function renderLatestPostHero(posts) {
         <div class="hero-title">최신 게시물 성과 · ${new Date(latest.timestamp).toLocaleDateString('ko-KR')} 게시 <span class="hero-title-note">(가장 최근에 올린 게시물 1건 기준)</span></div>
         <div class="hero-stats-row">
           <div><div class="hero-stat-value">${(latest.views || 0).toLocaleString()}</div><div class="hero-stat-label">조회수</div><div class="hero-stat-meaning">노출된 총 횟수</div></div>
-          <div><div class="hero-stat-value">${(latest.reach || 0).toLocaleString()}</div><div class="hero-stat-label">도달</div><div class="hero-stat-meaning">본 사람 수(중복 제외)</div></div>
+          <div><div class="hero-stat-value">${(latest.reach || 0).toLocaleString()}</div><div class="hero-stat-label">도달</div><div class="hero-stat-meaning">이 게시물을 본 사람 수(중복 제외)</div></div>
         </div>
         <div class="hero-stats-row hero-stats-row-secondary">
           <div><div class="hero-stat-value-sm">${(latest.like_count || 0).toLocaleString()}</div><div class="hero-stat-label">좋아요</div></div>
