@@ -298,6 +298,14 @@ function renderFollowerChart(history) {
   const plugins = [lineValueLabelPlugin];
   if (hasGrowthRate) plugins.push(makeLineValueLabelPlugin(1, '#c8961e', (v) => `${v >= 0 ? '+' : ''}${Math.round(v)}%`));
 
+  // 증감률이 낮은 달(예: +4%, +7%)은 0% 바로 위, 즉 x축 바로 위에 점이 찍혀서 라벨이
+  // 아래로 피할 자리가 없어 x축 눈금 글자와 겹친다. y1 축 아래쪽에 여유 공간을 미리
+  // 확보해(0% 밑으로도 그릴 수 있게) 낮은 값도 x축에서 떨어져서 그려지도록 한다.
+  const growthValues = growthRate.filter((v) => v != null);
+  const maxGrowth = growthValues.length ? Math.max(...growthValues) : 0;
+  const minGrowth = growthValues.length ? Math.min(...growthValues) : 0;
+  const growthSpan = Math.max(maxGrowth - Math.min(minGrowth, 0), 1);
+
   followerChartInstance = new Chart(ctx, {
     type: 'line',
     plugins,
@@ -308,7 +316,7 @@ function renderFollowerChart(history) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      layout: { padding: { top: hasGrowthRate ? 30 : 20, right: hasGrowthRate ? 14 : 0 } },
+      layout: { padding: { top: hasGrowthRate ? 30 : 20, right: hasGrowthRate ? 14 : 0, bottom: hasGrowthRate ? 6 : 0 } },
       // 증감률 점이 팔로워 수 점과 겹쳐도 그 달 열 어디든 클릭/호버하면 둘 다 반응하도록.
       ...(hasGrowthRate ? { interaction: { mode: 'index', intersect: false } } : {}),
       plugins: {
@@ -332,7 +340,15 @@ function renderFollowerChart(history) {
         y: { beginAtZero: false, grid: { color: '#eef0f5' } },
         x: { grid: { display: false } },
         ...(hasGrowthRate
-          ? { y1: { position: 'right', grid: { display: false }, ticks: { callback: (v) => `${v}%` } } }
+          ? {
+              y1: {
+                position: 'right',
+                grid: { display: false },
+                ticks: { callback: (v) => `${v}%` },
+                suggestedMax: maxGrowth + growthSpan * 0.15,
+                suggestedMin: Math.min(minGrowth, 0) - growthSpan * 0.25
+              }
+            }
           : {})
       }
     }
