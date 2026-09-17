@@ -501,6 +501,14 @@ h2 { letter-spacing: -0.01em; }
 
 .recent-thumb-date { font-size: 10.5px; color: var(--text-mute); text-align: center; }
 
+.recent-thumb-collab {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--brand-teal-light);
+  text-align: center;
+  margin-top: 2px;
+}
+
 .insight-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 
 @media (max-width: 860px) {
@@ -652,6 +660,18 @@ select.tag-select {
   font-size: 12px;
   background: #fff;
 }
+
+.row-collab-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 4px;
+  font-size: 11px;
+  color: var(--text-mute);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.row-collab-toggle input { width: 13px; height: 13px; cursor: pointer; }
 
 .modal-backdrop {
   position: fixed;

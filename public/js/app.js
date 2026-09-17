@@ -216,6 +216,7 @@ function renderRecentThumbs(posts) {
       <div class="recent-thumb" data-post-id="${p.id}">
         ${thumbHtml(p, '')}
         <div class="recent-thumb-date">${new Date(p.timestamp).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}</div>
+        ${p.is_collab ? '<div class="recent-thumb-collab">🤝 공동</div>' : ''}
       </div>`
     )
     .join('');
@@ -653,7 +654,13 @@ function renderPostsTable(data) {
         <td>${thumbHtml(p, 'row-thumb')}</td>
         <td>${new Date(p.timestamp).toLocaleDateString('ko-KR')}</td>
         <td class="caption-cell">${escapeHtml(p.caption || '').slice(0, 60)}</td>
-        <td>${MEDIA_TYPE_LABEL[p.media_type] || p.media_type}${p.is_collab ? ' · 공동' : ''}</td>
+        <td>
+          ${MEDIA_TYPE_LABEL[p.media_type] || p.media_type}
+          <label class="row-collab-toggle info-hint" data-tooltip="다른 계정과 함께 올린 공동 게시물이면 체크하세요">
+            <input type="checkbox" class="collab-toggle" data-post-id="${p.id}" ${p.is_collab ? 'checked' : ''}>
+            공동${p.is_collab && p.collab_partner ? ` (${escapeHtml(p.collab_partner)})` : ''}
+          </label>
+        </td>
         <td>
           <select class="tag-select" data-post-id="${p.id}">
             <option value="">${CATEGORY_PLACEHOLDER}</option>
@@ -668,6 +675,24 @@ function renderPostsTable(data) {
       </tr>`;
     })
     .join('');
+
+  tbody.querySelectorAll('.collab-toggle').forEach((checkbox) => {
+    checkbox.addEventListener('click', (e) => e.stopPropagation());
+    checkbox.addEventListener('change', async (e) => {
+      const postId = e.target.dataset.postId;
+      const isCollab = e.target.checked;
+      let partner = '';
+      if (isCollab) {
+        partner = window.prompt('협업한 계정을 입력하세요 (모르면 비워둬도 돼요)') || '';
+      }
+      await fetch('/api/post-collab', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ postId, isCollab, partner })
+      });
+      await refresh();
+    });
+  });
 
   tbody.querySelectorAll('.tag-select').forEach((select) => {
     select.addEventListener('click', (e) => e.stopPropagation());
