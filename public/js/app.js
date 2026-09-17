@@ -66,7 +66,6 @@ function renderFollowerHero(data) {
       }
     </div>
     ${delta == null ? '<div class="hero-empty">한 달 이상 데이터가 쌓이면 전월 대비 증감이 표시돼요.</div>' : ''}
-    <div class="hero-stat-meaning">월 단위 집계</div>
   `;
 }
 
@@ -90,7 +89,7 @@ function renderMonthlyStatHero(elId, title, meaning, pairs) {
 
 function renderViewsMonthlyHero(data) {
   const pairs = data.posts.filter((p) => p.views != null).map((p) => [p.timestamp.slice(0, 10), p.views]);
-  renderMonthlyStatHero('viewsMonthlyHero', '조회수', '이번 달 노출된 총 횟수', pairs);
+  renderMonthlyStatHero('viewsMonthlyHero', '조회수', '이번 달 게시물의 노출된 총 횟수', pairs);
 }
 
 function renderReachMonthlyHero(data) {
