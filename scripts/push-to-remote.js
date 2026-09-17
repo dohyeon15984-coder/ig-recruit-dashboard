@@ -37,7 +37,8 @@ async function main() {
     demographics: readJson('demographics.json', null),
     chartNotes: readJson('chartNotes.json', []),
     adCampaigns: readJson('adCampaigns.json', []),
-    postOverrides: readJson('postOverrides.json', {})
+    postOverrides: readJson('postOverrides.json', {}),
+    categories: readJson('categories.json', null)
   };
 
   console.log(`${remoteUrl.replace(/\/$/, '')}/api/admin/import 로 전송 중...`);

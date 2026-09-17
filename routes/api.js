@@ -5,7 +5,6 @@ const { computeFunnel, computeGoalProgress } = require('../lib/metrics');
 const { filterPosts, filterHistory } = require('../lib/filters');
 const store = require('../lib/store');
 const instagramApi = require('../lib/instagramApi');
-const { CATEGORIES } = require('../lib/categories');
 
 const router = express.Router();
 
@@ -57,7 +56,7 @@ function buildDashboardPayload(query = {}) {
     chartNotes: store.loadChartNotes(),
     adCampaigns: store.loadAdCampaigns(),
     insights: generateInsights(posts, history, settings),
-    categories: CATEGORIES,
+    categories: store.loadCategories(),
     meta: { totalPosts: allPosts.length, filteredPosts: posts.length }
   };
 }
@@ -107,8 +106,9 @@ router.post('/sync', async (req, res) => {
 
 router.post('/posts/:id/tag', (req, res) => {
   const { category } = req.body || {};
-  if (category !== null && !CATEGORIES.includes(category)) {
-    return res.status(400).json({ error: `유효하지 않은 카테고리입니다. 사용 가능: ${CATEGORIES.join(', ')}` });
+  const categories = store.loadCategories();
+  if (category !== null && !categories.includes(category)) {
+    return res.status(400).json({ error: `유효하지 않은 카테고리입니다. 사용 가능: ${categories.join(', ')}` });
   }
 
   if (!isLiveMode()) {
@@ -147,6 +147,29 @@ router.post('/chart-notes', (req, res) => {
   }
   const notes = store.saveChartNote({ chartKey, period, text });
   res.json({ chartNotes: notes });
+});
+
+// 게시물 카테고리(태그 종류) CRUD. 전체 게시물 표의 카테고리 드롭다운에서 바로 관리할 수 있게 한다.
+router.post('/categories', (req, res) => {
+  const { name } = req.body || {};
+  try {
+    res.json({ categories: store.addCategory(name) });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.patch('/categories/:name', (req, res) => {
+  const { newName } = req.body || {};
+  try {
+    res.json({ categories: store.renameCategory(req.params.name, newName) });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.delete('/categories/:name', (req, res) => {
+  res.json({ categories: store.deleteCategory(req.params.name) });
 });
 
 // 게시물 유료 광고 집행 내역 CRUD. 메타 광고 API 연동이 아니라, Ads Manager에서
@@ -194,7 +217,7 @@ router.post('/admin/import', (req, res) => {
     return res.status(401).json({ error: '인증에 실패했어요.' });
   }
 
-  const { posts, history, demographics, chartNotes, adCampaigns, postOverrides } = req.body || {};
+  const { posts, history, demographics, chartNotes, adCampaigns, postOverrides, categories } = req.body || {};
   if (Array.isArray(posts)) store.importPosts(posts);
   if (Array.isArray(history)) store.mergeHistorySnapshots(history);
   if (demographics) store.saveDemographics(demographics);
@@ -207,6 +230,7 @@ router.post('/admin/import', (req, res) => {
   if (postOverrides && typeof postOverrides === 'object') {
     for (const [postId, fields] of Object.entries(postOverrides)) store.savePostOverride(postId, fields);
   }
+  if (Array.isArray(categories)) store.saveCategories(categories);
 
   res.json({ ok: true, importedPosts: posts?.length ?? 0, importedHistory: history?.length ?? 0 });
 });

@@ -270,6 +270,18 @@
   </div>
 </div>
 
+<div id="categoryModal" class="modal-backdrop" hidden>
+  <div class="modal-card modal-card-sm">
+    <button id="categoryModalClose" class="modal-close" aria-label="닫기">✕</button>
+    <div class="note-modal-title">카테고리 관리</div>
+    <form id="categoryAddForm" class="category-add-form">
+      <input type="text" id="categoryAddInput" placeholder="새 카테고리 이름" maxlength="20">
+      <button type="submit" class="btn-primary">추가</button>
+    </form>
+    <div id="categoryManageList" class="category-manage-list"></div>
+  </div>
+</div>
+
 <script src="js/charts.js"></script>
 <script src="js/app.js"></script>
 </body>

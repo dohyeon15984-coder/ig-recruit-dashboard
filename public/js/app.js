@@ -622,6 +622,9 @@ function renderPostsTable(data) {
           <select class="tag-select" data-post-id="${p.id}">
             <option value="">${CATEGORY_PLACEHOLDER}</option>
             ${options}
+            <option disabled>──────────</option>
+            <option value="__add__">＋ 새 카테고리 추가</option>
+            <option value="__manage__">🛠 카테고리 관리</option>
           </select>
         </td>
         <td>${(p.like_count || 0).toLocaleString()}</td>
@@ -636,8 +639,31 @@ function renderPostsTable(data) {
   tbody.querySelectorAll('.tag-select').forEach((select) => {
     select.addEventListener('click', (e) => e.stopPropagation());
     select.addEventListener('change', async (e) => {
+      const value = e.target.value;
+
+      if (value === '__add__') {
+        const name = window.prompt('추가할 카테고리 이름을 입력하세요');
+        if (name && name.trim()) {
+          const res = await fetch('/api/categories', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: name.trim() })
+          });
+          const json = await res.json();
+          if (!res.ok) alert(json.error || '카테고리 추가에 실패했어요.');
+        }
+        await refresh();
+        return;
+      }
+
+      if (value === '__manage__') {
+        openCategoryManageModal();
+        await refresh();
+        return;
+      }
+
       const postId = e.target.dataset.postId;
-      const category = e.target.value || null;
+      const category = value || null;
       await fetch(`/api/posts/${postId}/tag`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -965,6 +991,96 @@ function setupNoteModal() {
   });
 }
 
+function openCategoryManageModal() {
+  renderCategoryManageList();
+  document.getElementById('categoryModal').hidden = false;
+}
+
+function closeCategoryManageModal() {
+  document.getElementById('categoryModal').hidden = true;
+}
+
+function renderCategoryManageList() {
+  const list = document.getElementById('categoryManageList');
+  const categories = state.data?.categories || [];
+
+  list.innerHTML =
+    categories
+      .map(
+        (c) => `
+      <div class="category-manage-row">
+        <span class="category-manage-name">${escapeHtml(c)}</span>
+        <button type="button" class="btn-ghost category-rename-btn" data-name="${escapeHtml(c)}">이름 변경</button>
+        <button type="button" class="btn-ghost category-delete-btn" data-name="${escapeHtml(c)}">삭제</button>
+      </div>`
+      )
+      .join('') || '<div class="category-manage-empty">등록된 카테고리가 없어요.</div>';
+
+  list.querySelectorAll('.category-rename-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const oldName = btn.dataset.name;
+      const newName = window.prompt(`"${oldName}"의 새 이름을 입력하세요`, oldName);
+      if (!newName || !newName.trim() || newName.trim() === oldName) return;
+      const res = await fetch(`/api/categories/${encodeURIComponent(oldName)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newName: newName.trim() })
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        alert(json.error || '이름 변경에 실패했어요.');
+        return;
+      }
+      await refresh();
+      renderCategoryManageList();
+    });
+  });
+
+  list.querySelectorAll('.category-delete-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const name = btn.dataset.name;
+      if (!confirm(`"${name}" 카테고리를 삭제할까요? 이 카테고리로 지정된 게시물은 미지정으로 바뀌어요.`)) return;
+      const res = await fetch(`/api/categories/${encodeURIComponent(name)}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (!res.ok) {
+        alert(json.error || '삭제에 실패했어요.');
+        return;
+      }
+      await refresh();
+      renderCategoryManageList();
+    });
+  });
+}
+
+function setupCategoryManageModal() {
+  document.getElementById('categoryModalClose').addEventListener('click', closeCategoryManageModal);
+  document.getElementById('categoryModal').addEventListener('click', (e) => {
+    if (e.target.id === 'categoryModal') closeCategoryManageModal();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !document.getElementById('categoryModal').hidden) closeCategoryManageModal();
+  });
+  document.getElementById('categoryAddForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const input = document.getElementById('categoryAddInput');
+    const name = input.value.trim();
+    if (!name) return;
+    const res = await fetch('/api/categories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name })
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      alert(json.error || '카테고리 추가에 실패했어요.');
+      return;
+    }
+    input.value = '';
+    await refresh();
+    renderCategoryManageList();
+  });
+}
+
 function setupModal() {
   document.getElementById('postModalClose').addEventListener('click', closePostModal);
   document.getElementById('postModal').addEventListener('click', (e) => {
@@ -1015,6 +1131,7 @@ async function init() {
   setupSortableHeaders();
   setupModal();
   setupNoteModal();
+  setupCategoryManageModal();
   setupTabs();
   setupTrendGranularityControls();
   setupAdCampaignForm();
