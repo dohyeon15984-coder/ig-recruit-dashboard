@@ -59,7 +59,7 @@ function renderFollowerHero(data) {
     <div class="hero-title">현재 팔로워</div>
     <div class="hero-value-row follower-hero-body">
       <div class="follower-hero-icon">${PERSON_ICON_FULL_SVG}</div>
-      <div class="follower-hero-value">${current != null ? current.toLocaleString() : '-'}</div>
+      <div class="follower-hero-value">${current != null ? current.toLocaleString() + '명' : '-'}</div>
       ${
         delta != null
           ? `<div class="hero-delta ${delta >= 0 ? 'pos' : 'neg'}">${delta >= 0 ? '+' : ''}${delta.toLocaleString()}명 전월 대비</div>`
@@ -84,10 +84,10 @@ function renderMonthlyStatHero(elId, title, meaningSuffix, pairs) {
   el.innerHTML = `
     <div class="hero-title">${title} <span class="hero-title-note">— ${meaning}</span></div>
     <div class="hero-value-row">
-      <div class="follower-hero-value">${total != null ? Math.round(total).toLocaleString() : '-'}</div>
+      <div class="follower-hero-value">${total != null ? Math.round(total).toLocaleString() + '회' : '-'}</div>
       ${
         delta != null
-          ? `<div class="hero-delta ${delta >= 0 ? 'pos' : 'neg'}">${delta >= 0 ? '+' : ''}${Math.round(delta).toLocaleString()} 전월 대비</div>`
+          ? `<div class="hero-delta ${delta >= 0 ? 'pos' : 'neg'}">${delta >= 0 ? '+' : ''}${Math.round(delta).toLocaleString()}회 전월 대비</div>`
           : ''
       }
     </div>
@@ -735,7 +735,9 @@ function openPostModal(postId) {
   const sr = saveRate(post);
 
   body.innerHTML = `
-    ${thumbHtml(post, 'modal-thumb')}
+  <div class="modal-layout">
+    <div class="modal-thumb-col">${thumbHtml(post, 'modal-thumb-full')}</div>
+    <div class="modal-content-col">
     <div class="modal-title">${escapeHtml(post.caption || '(캡션 없음)')}</div>
     <div class="modal-meta">
       ${new Date(post.timestamp).toLocaleString('ko-KR')} · ${MEDIA_TYPE_LABEL[post.media_type] || post.media_type}${post.is_collab ? ` · 공동 게시물${post.collab_partner ? ` (${escapeHtml(post.collab_partner)})` : ''}` : ''}${post.category ? ' · ' + post.category : ' · 카테고리 미지정'}${post.manual ? ' · 직접 추가한 게시물' : ''}
@@ -799,6 +801,8 @@ function openPostModal(postId) {
         <button type="button" id="postOverrideSave" class="btn-primary">저장</button>
       </div>
     </div>
+    </div>
+  </div>
   `;
   modal.hidden = false;
 
