@@ -75,7 +75,7 @@ const barValueLabelPluginDark = makeBarValueLabelPlugin('#33403a');
 // 콤보 차트에서 특정 datasetIndex 하나에만 적용하기 위해 인덱스를 받는다.
 // 라인의 점이 막대 꼭대기(막대 값 라벨이 그려지는 자리)와 가까우면 라벨을 점 아래쪽으로
 // 내려서 겹치지 않게 하고, 막대 색 위에서도 읽히도록 흰색 테두리를 둘러 그린다.
-function makeLineValueLabelPlugin(datasetIndex, textColor) {
+function makeLineValueLabelPlugin(datasetIndex, textColor, formatValue = (v) => v.toLocaleString()) {
   return {
     id: `lineValueLabel${datasetIndex}`,
     afterDatasetsDraw(chart) {
@@ -89,7 +89,7 @@ function makeLineValueLabelPlugin(datasetIndex, textColor) {
         if (value == null) return;
         const barPoint = barMeta.data[index];
         const nearBarTop = barPoint && Math.abs(point.y - barPoint.y) < 30;
-        const text = value.toLocaleString();
+        const text = formatValue(value);
         const y = nearBarTop ? point.y + 16 : point.y - 8;
 
         ctx.save();
@@ -249,36 +249,91 @@ const lineValueLabelPlugin = {
   }
 };
 
+// 전월 대비 팔로워 증감률(%). 초반 구간은 모수가 작아 +200%처럼 튀는 값이 나올 수 있는데,
+// 이건 실제로 그렇다는 뜻이라 그대로 보여준다(축을 억지로 눌러 왜곡하지 않음).
+function followerGrowthRateSeries(counts) {
+  return counts.map((v, i) => {
+    const prev = counts[i - 1];
+    if (i === 0 || v == null || prev == null || !prev) return null;
+    return ((v - prev) / prev) * 100;
+  });
+}
+
 function renderFollowerChart(history) {
   const ctx = document.getElementById('followerChart');
   if (followerChartInstance) followerChartInstance.destroy();
+
+  const counts = history.map((h) => h.follower_count ?? null);
+  const growthRate = followerGrowthRateSeries(counts);
+  const hasGrowthRate = growthRate.some((v) => v != null);
+
+  const datasets = [
+    {
+      label: '팔로워 수',
+      data: counts,
+      borderColor: BRAND_TEAL,
+      backgroundColor: 'rgba(34,164,136,0.12)',
+      pointRadius: 3,
+      pointHoverRadius: 6,
+      borderWidth: 2,
+      fill: true,
+      tension: 0.25
+    }
+  ];
+  if (hasGrowthRate) {
+    datasets.push({
+      label: '전월 대비 증감률',
+      data: growthRate,
+      borderColor: '#c8961e',
+      backgroundColor: '#c8961e',
+      borderWidth: 2,
+      pointRadius: 3,
+      pointHoverRadius: 5,
+      tension: 0.25,
+      fill: false,
+      yAxisID: 'y1'
+    });
+  }
+
+  const plugins = [lineValueLabelPlugin];
+  if (hasGrowthRate) plugins.push(makeLineValueLabelPlugin(1, '#c8961e', (v) => `${v >= 0 ? '+' : ''}${Math.round(v)}%`));
+
   followerChartInstance = new Chart(ctx, {
     type: 'line',
-    plugins: [lineValueLabelPlugin],
+    plugins,
     data: {
       labels: history.map((h) => shortMonthLabel(h.date)),
-      datasets: [
-        {
-          label: '팔로워 수',
-          data: history.map((h) => h.follower_count ?? null),
-          borderColor: BRAND_TEAL,
-          backgroundColor: 'rgba(34,164,136,0.12)',
-          pointRadius: 3,
-          pointHoverRadius: 6,
-          borderWidth: 2,
-          fill: true,
-          tension: 0.25
-        }
-      ]
+      datasets
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      layout: { padding: { top: 20 } },
-      plugins: { legend: { display: false } },
+      layout: { padding: { top: 20, right: hasGrowthRate ? 14 : 0 } },
+      // 증감률 점이 팔로워 수 점과 겹쳐도 그 달 열 어디든 클릭/호버하면 둘 다 반응하도록.
+      ...(hasGrowthRate ? { interaction: { mode: 'index', intersect: false } } : {}),
+      plugins: {
+        legend: hasGrowthRate
+          ? { display: true, position: 'top', align: 'end', labels: { boxWidth: 10, font: { size: 11 } } }
+          : { display: false },
+        tooltip: hasGrowthRate
+          ? {
+              mode: 'index',
+              intersect: false,
+              callbacks: {
+                label: (c) =>
+                  c.datasetIndex === 1
+                    ? `${c.dataset.label} ${c.parsed.y >= 0 ? '+' : ''}${c.parsed.y.toFixed(1)}%`
+                    : `${c.dataset.label} ${c.parsed.y.toLocaleString()}`
+              }
+            }
+          : {}
+      },
       scales: {
         y: { beginAtZero: false, grid: { color: '#eef0f5' } },
-        x: { grid: { display: false } }
+        x: { grid: { display: false } },
+        ...(hasGrowthRate
+          ? { y1: { position: 'right', grid: { display: false }, ticks: { callback: (v) => `${v}%` } } }
+          : {})
       }
     }
   });
