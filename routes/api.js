@@ -5,6 +5,7 @@ const { computeFunnel, computeGoalProgress } = require('../lib/metrics');
 const { filterPosts, filterHistory } = require('../lib/filters');
 const store = require('../lib/store');
 const instagramApi = require('../lib/instagramApi');
+const { pushToRemote } = require('../lib/pushToRemote');
 
 const router = express.Router();
 
@@ -99,7 +100,21 @@ router.post('/sync', async (req, res) => {
     store.mergeHistorySnapshots([...dailyBackfill, todaySnapshot]);
     store.saveDemographics(demographics);
 
-    res.json(buildDashboardPayload());
+    // 로컬 동기화가 끝나면 배포 서버(Render)로도 자동으로 데이터를 밀어넣는다 — 사용자가
+    // "지금 동기화" 버튼 한 번만 눌러도 로컬+배포 사이트가 같이 최신화되도록 하기 위함.
+    // 실패해도 로컬 동기화 자체는 이미 성공했으니 에러로 만들지 않고 결과에만 표시한다.
+    let remotePush = null;
+    if (process.env.REMOTE_DASHBOARD_URL && process.env.ADMIN_SYNC_SECRET) {
+      try {
+        await pushToRemote(process.env.REMOTE_DASHBOARD_URL, process.env.ADMIN_SYNC_SECRET);
+        remotePush = { ok: true };
+      } catch (err) {
+        console.warn('[sync] 배포 서버로 자동 전송 실패:', err.message);
+        remotePush = { ok: false, error: err.message };
+      }
+    }
+
+    res.json({ ...buildDashboardPayload(), remotePush });
   } catch (err) {
     console.error('[sync] 동기화 실패:', err);
     res.status(502).json({ error: `Instagram API 동기화 실패: ${err.message}` });

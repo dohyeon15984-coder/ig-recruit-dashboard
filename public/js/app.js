@@ -40,10 +40,11 @@ function monthlySumFairCompare(pairs) {
 
   // 지난달 같은 기간에 데이터가 아예 없으면(예: 동기화가 그 기간엔 없었음) 0과 비교하는 셈이 되어
   // "+100%"처럼 실제와 다른 증감으로 보일 수 있다 — 이 경우 비교 자체를 하지 않는다.
-  if (!priorRowsInRange.length) return { total, delta: null, isPartial: lastDay < priorMonthLastDay };
+  const isPartial = lastDay < priorMonthLastDay;
+  if (!priorRowsInRange.length) return { total, delta: null, isPartial, lastDay };
 
   const priorComparable = priorRowsInRange.reduce((sum, [, v]) => sum + v, 0);
-  return { total, delta: total - priorComparable, isPartial: lastDay < priorMonthLastDay };
+  return { total, delta: total - priorComparable, isPartial, lastDay };
 }
 
 function renderFollowerHero(data) {
@@ -71,7 +72,7 @@ function renderFollowerHero(data) {
 
 function renderMonthlyStatHero(elId, title, meaning, pairs) {
   const el = document.getElementById(elId);
-  const { total, delta, isPartial } = monthlySumFairCompare(pairs);
+  const { total, delta, isPartial, lastDay } = monthlySumFairCompare(pairs);
 
   el.innerHTML = `
     <div class="hero-title">${title} <span class="hero-title-note">— ${meaning}</span></div>
@@ -79,7 +80,7 @@ function renderMonthlyStatHero(elId, title, meaning, pairs) {
       <div class="follower-hero-value">${total != null ? Math.round(total).toLocaleString() : '-'}</div>
       ${
         delta != null
-          ? `<div class="hero-delta ${delta >= 0 ? 'pos' : 'neg'}">${delta >= 0 ? '+' : ''}${Math.round(delta).toLocaleString()} ${isPartial ? '지난달 같은 기간 대비' : '전월 대비'}</div>`
+          ? `<div class="hero-delta ${delta >= 0 ? 'pos' : 'neg'}">${delta >= 0 ? '+' : ''}${Math.round(delta).toLocaleString()} ${isPartial ? `지난달 1~${lastDay}일 대비 (일수 맞춰 비교)` : '전월 대비'}</div>`
           : ''
       }
     </div>
@@ -88,7 +89,7 @@ function renderMonthlyStatHero(elId, title, meaning, pairs) {
 
 function renderViewsMonthlyHero(data) {
   const pairs = data.posts.filter((p) => p.views != null).map((p) => [p.timestamp.slice(0, 10), p.views]);
-  renderMonthlyStatHero('viewsMonthlyHero', '조회수', '이번 달 발행된 게시물의 노출된 총 횟수', pairs);
+  renderMonthlyStatHero('viewsMonthlyHero', '조회수', '이번 달 발행된 게시물이 지금까지 모은 노출 총 횟수', pairs);
 }
 
 function renderReachMonthlyHero(data) {
@@ -1317,6 +1318,11 @@ async function init() {
         alert(json.error || '동기화에 실패했어요.');
       } else {
         await refresh();
+        if (json.remotePush && !json.remotePush.ok) {
+          alert(
+            `로컬 동기화는 성공했지만, 배포 사이트로 자동 전송은 실패했어요: ${json.remotePush.error}\n\n터미널에서 npm run push-remote 로 다시 시도해주세요.`
+          );
+        }
       }
     } finally {
       btn.disabled = false;
