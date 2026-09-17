@@ -68,6 +68,31 @@ const barValueLabelPlugin = makeBarValueLabelPlugin('rgba(255,255,255,0.9)');
 // 밝은 흰 배경 패널 위에 쓰는 어두운 라벨.
 const barValueLabelPluginDark = makeBarValueLabelPlugin('#33403a');
 
+// 보조 라인 데이터셋(예: 게시물 수) 위에 값을 표시하는 플러그인. 여러 데이터셋이 있는
+// 콤보 차트에서 특정 datasetIndex 하나에만 적용하기 위해 인덱스를 받는다.
+function makeLineValueLabelPlugin(datasetIndex, textColor) {
+  return {
+    id: `lineValueLabel${datasetIndex}`,
+    afterDatasetsDraw(chart) {
+      const meta = chart.getDatasetMeta(datasetIndex);
+      if (!meta) return;
+      const { ctx } = chart;
+      const data = chart.data.datasets[datasetIndex].data;
+      meta.data.forEach((point, index) => {
+        const value = data[index];
+        if (value == null) return;
+        ctx.save();
+        ctx.fillStyle = textColor;
+        ctx.font = "700 11px 'Pretendard', sans-serif";
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(value.toLocaleString(), point.x, point.y - 8);
+        ctx.restore();
+      });
+    }
+  };
+}
+
 // 히어로 카드용 미니 스파크라인 (축/그리드 없이 추이만 보여줌)
 function renderReachSparkline(entries) {
   const ctx = document.getElementById('reachHeroChart');
@@ -326,6 +351,7 @@ function renderTrendChart(canvasId, instanceKey, series, mode, label, color, not
 
   const plugins = [makeNoteMarkerPlugin(() => notedIndexes)];
   if (mode === 'monthly') plugins.push(barValueLabelPluginDark);
+  if (secondary) plugins.push(makeLineValueLabelPlugin(1, secondary.color));
 
   // 가장 높은 막대가 그래프 맨 위 끝까지 닿으면 그 위에 그리는 값 라벨이 카드 밖으로 잘려서,
   // y축 최댓값을 실제 데이터보다 넉넉하게 잡아 라벨 자리를 남겨둔다.
@@ -368,16 +394,21 @@ function renderTrendChart(canvasId, instanceKey, series, mode, label, color, not
       responsive: true,
       maintainAspectRatio: false,
       layout: { padding: { top: 20, right: 14 } },
+      // 보조 라인의 점이 막대 위에 겹치면 정확히 그 점(반지름 몇 px)을 클릭해야만 반응하는
+      // 문제가 생긴다. 'index'+intersect:false로 두면 그 달/날짜 열 어디를 클릭해도
+      // (막대든 겹친 라인이든) 항상 막대(datasetIndex 0) 기준으로 반응한다.
+      interaction: { mode: 'index', intersect: false },
       onClick: (evt, elements) => {
         if (!elements.length || !onPointClick) return;
-        onPointClick(elements[0].index);
+        const barElement = elements.find((el) => el.datasetIndex === 0) || elements[0];
+        onPointClick(barElement.index);
       },
       onHover: (evt, elements) => {
         if (evt.native && evt.native.target) evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
       },
       plugins: {
         legend: secondary ? { display: true, position: 'top', align: 'end', labels: { boxWidth: 10, font: { size: 11 } } } : { display: false },
-        tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label} ${ctx.parsed.y.toLocaleString()}` } }
+        tooltip: { mode: 'index', intersect: false, callbacks: { label: (ctx) => `${ctx.dataset.label} ${ctx.parsed.y.toLocaleString()}` } }
       },
       scales: {
         y: { beginAtZero: false, suggestedMax: maxValue * 1.18, grid: { color: '#eef0f5' } },
