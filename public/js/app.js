@@ -465,13 +465,18 @@ function renderAdCampaignsTable(adCampaigns, posts, history) {
         ? escapeHtml(captionRaw.slice(0, 24)) + (captionRaw.length > 24 ? '…' : '')
         : '(삭제된 게시물)';
       const displayLabel = c.note ? escapeHtml(c.note) : postLabel;
+      const overrideBadge = m.post?.has_override
+        ? '<span class="post-override-badge">실제 수치 반영 중</span>'
+        : m.post
+          ? '<span class="ad-row-organic-hint info-hint" data-tooltip="메타 API 기본값(오가닉만)이에요. 행을 클릭해서 실제 전체 수치를 입력할 수 있어요">오가닉 수치</span>'
+          : '';
       return `
-      <tr>
+      <tr class="ad-row" data-post-id="${m.post?.id || ''}">
         <td>${index + 1}</td>
         <td class="caption-cell">
           <div style="display:flex; align-items:center; gap:8px;">
             ${thumbHtml(m.post || {}, 'row-thumb')}
-            <div>${displayLabel}</div>
+            <div>${displayLabel}${overrideBadge ? `<br>${overrideBadge}` : ''}</div>
           </div>
         </td>
         <td>${c.startDate} ~ ${c.endDate}</td>
@@ -495,11 +500,19 @@ function renderAdCampaignsTable(adCampaigns, posts, history) {
     .join('');
 
   tbody.querySelectorAll('.ad-delete-btn').forEach((btn) => {
-    btn.addEventListener('click', async () => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
       if (!confirm('이 광고 집행 내역을 삭제할까요?')) return;
       await fetch(`/api/ad-campaigns/${btn.dataset.adId}`, { method: 'DELETE' });
       await refresh();
     });
+  });
+
+  // 행을 클릭하면 그 게시물 상세로 바로 이동 — "실제 전체 수치 입력" 폼이 거기 있어서,
+  // 표에 보이는 오가닉 수치가 실제와 다르면 바로 고칠 수 있게 한다.
+  tbody.querySelectorAll('.ad-row').forEach((tr) => {
+    if (!tr.dataset.postId) return;
+    tr.addEventListener('click', () => openPostModal(tr.dataset.postId));
   });
 }
 
