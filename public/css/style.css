@@ -817,6 +817,18 @@ select.tag-select {
 
 .post-override-desc { font-size: 11.5px; color: var(--text-mute); line-height: 1.5; margin: 6px 0 12px; }
 
+.post-collab-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+.post-collab-checkbox input { width: 15px; height: 15px; cursor: pointer; }
+
 .post-override-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 
 .post-override-field { display: flex; flex-direction: column; gap: 4px; }

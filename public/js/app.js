@@ -701,7 +701,7 @@ function openPostModal(postId) {
     ${thumbHtml(post, 'modal-thumb')}
     <div class="modal-title">${escapeHtml(post.caption || '(캡션 없음)')}</div>
     <div class="modal-meta">
-      ${new Date(post.timestamp).toLocaleString('ko-KR')} · ${MEDIA_TYPE_LABEL[post.media_type] || post.media_type}${post.is_collab ? ' · 공동 게시물' : ''}${post.category ? ' · ' + post.category : ' · 카테고리 미지정'}
+      ${new Date(post.timestamp).toLocaleString('ko-KR')} · ${MEDIA_TYPE_LABEL[post.media_type] || post.media_type}${post.is_collab ? ` · 공동 게시물${post.collab_partner ? ` (${escapeHtml(post.collab_partner)})` : ''}` : ''}${post.category ? ' · ' + post.category : ' · 카테고리 미지정'}
     </div>
     <div class="modal-stats">
       <div class="modal-stat">
@@ -725,6 +725,22 @@ function openPostModal(postId) {
     ${post.permalink && post.permalink !== '#' ? `<a class="modal-link" href="${post.permalink}" target="_blank" rel="noopener">인스타그램에서 보기 →</a>` : ''}
 
     <div class="post-override-section">
+      <div class="post-override-title">공동 게시물(콜라보) 정보</div>
+      <div class="post-override-desc">메타 API 권한 문제로 공동 게시물 여부가 자동으로 확인되지 않아요. 다른 계정과 함께 올린 게시물이면 직접 체크하고 협업 계정을 적어주세요.</div>
+      <label class="post-collab-checkbox">
+        <input type="checkbox" id="collabIsCollab" ${post.is_collab ? 'checked' : ''}>
+        공동 게시물이에요
+      </label>
+      <div class="post-override-field">
+        <label>협업 계정</label>
+        <input type="text" id="collabPartner" placeholder="예: @account_name" value="${escapeHtml(post.collab_partner || '')}">
+      </div>
+      <div class="post-override-actions">
+        <button type="button" id="postCollabSave" class="btn-primary">저장</button>
+      </div>
+    </div>
+
+    <div class="post-override-section">
       <div class="post-override-title">
         실제 전체 수치 입력 (광고/유료 홍보 포함)
         ${post.has_override ? '<span class="post-override-badge">반영 중</span>' : ''}
@@ -745,6 +761,18 @@ function openPostModal(postId) {
     </div>
   `;
   modal.hidden = false;
+
+  document.getElementById('postCollabSave').addEventListener('click', async () => {
+    const isCollab = document.getElementById('collabIsCollab').checked;
+    const partner = document.getElementById('collabPartner').value;
+    await fetch('/api/post-collab', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ postId: post.id, isCollab, partner })
+    });
+    await refresh();
+    openPostModal(post.id);
+  });
 
   document.getElementById('postOverrideSave').addEventListener('click', async () => {
     await fetch('/api/post-overrides', {

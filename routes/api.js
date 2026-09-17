@@ -24,7 +24,7 @@ function tokenStatus() {
 function buildDashboardPayload(query = {}) {
   const live = isLiveMode();
 
-  const allPosts = live ? store.applyPostOverrides(store.loadPosts()) : DEMO_POSTS;
+  const allPosts = live ? store.applyPostCollabInfo(store.applyPostOverrides(store.loadPosts())) : DEMO_POSTS;
   const allHistory = live ? store.loadHistory() : DEMO_HISTORY;
   const settings = live ? store.loadSettings() : DEMO_SETTINGS;
 
@@ -139,6 +139,20 @@ router.delete('/post-overrides/:postId', (req, res) => {
   res.json({ postOverrides: overrides });
 });
 
+// 공동 게시물(콜라보) 여부와 협업 계정을 수동으로 기록. Meta API로 자동 감지가 막혀있어
+// (/tags 엔드포인트 권한 문제, Tech Provider 전환 없이는 해결 불가) 수동 입력으로 대체한다.
+router.post('/post-collab', (req, res) => {
+  const { postId, isCollab, partner } = req.body || {};
+  if (!postId) return res.status(400).json({ error: 'postId가 필요해요.' });
+  const info = store.savePostCollabInfo(postId, { isCollab: Boolean(isCollab), partner: partner || '' });
+  res.json({ postCollabInfo: info });
+});
+
+router.delete('/post-collab/:postId', (req, res) => {
+  const info = store.clearPostCollabInfo(req.params.postId);
+  res.json({ postCollabInfo: info });
+});
+
 // 추이 차트의 특정 시점(예: 튀는 지점)에 왜 그랬는지 메모를 남기는 기능.
 router.post('/chart-notes', (req, res) => {
   const { chartKey, period, text } = req.body || {};
@@ -217,7 +231,7 @@ router.post('/admin/import', (req, res) => {
     return res.status(401).json({ error: '인증에 실패했어요.' });
   }
 
-  const { posts, history, demographics, chartNotes, adCampaigns, postOverrides, categories } = req.body || {};
+  const { posts, history, demographics, chartNotes, adCampaigns, postOverrides, categories, postCollabInfo } = req.body || {};
   if (Array.isArray(posts)) store.importPosts(posts);
   if (Array.isArray(history)) store.mergeHistorySnapshots(history);
   if (demographics) store.saveDemographics(demographics);
@@ -231,6 +245,9 @@ router.post('/admin/import', (req, res) => {
     for (const [postId, fields] of Object.entries(postOverrides)) store.savePostOverride(postId, fields);
   }
   if (Array.isArray(categories)) store.saveCategories(categories);
+  if (postCollabInfo && typeof postCollabInfo === 'object') {
+    for (const [postId, fields] of Object.entries(postCollabInfo)) store.savePostCollabInfo(postId, fields);
+  }
 
   res.json({ ok: true, importedPosts: posts?.length ?? 0, importedHistory: history?.length ?? 0 });
 });
