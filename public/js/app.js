@@ -985,12 +985,7 @@ function renderAll(data) {
   renderPostsTable(data);
   renderAdsTab(data);
   renderFollowerChart(monthlyBucketed(data.history, 'follower_count'));
-  renderViewsOnlyChart(
-    data.posts,
-    document.getElementById('viewsGranularity')?.value || 'monthly',
-    notesByPeriodFor('views'),
-    makePointClickHandler('views', '조회수', 'views')
-  );
+  renderViewsOnlyChart(data.posts, 'monthly', notesByPeriodFor('views'), makePointClickHandler('views', '조회수', 'views'));
   renderReachOnlyChart(
     data.history,
     document.getElementById('reachGranularity')?.value || 'monthly',
@@ -1300,10 +1295,6 @@ function setupTabs() {
 }
 
 function setupTrendGranularityControls() {
-  document.getElementById('viewsGranularity').addEventListener('change', (e) => {
-    if (state.data)
-      renderViewsOnlyChart(state.data.posts, e.target.value, notesByPeriodFor('views'), makePointClickHandler('views', '조회수', 'views'));
-  });
   document.getElementById('reachGranularity').addEventListener('change', (e) => {
     if (state.data)
       renderReachOnlyChart(state.data.history, e.target.value, notesByPeriodFor('reach'), makePointClickHandler('reach', '도달', 'reach'));

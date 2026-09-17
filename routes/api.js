@@ -181,7 +181,7 @@ router.post('/manual-posts', (req, res) => {
     id,
     timestamp: new Date(timestamp).toISOString(),
     caption: caption || '',
-    media_type: media_type || 'IMAGE',
+    media_type: media_type || 'CAROUSEL_ALBUM',
     category: category || null,
     is_collab: Boolean(is_collab),
     collab_partner: is_collab ? (collab_partner || '').trim() : null,

@@ -1,5 +1,7 @@
-const MEDIA_TYPE_LABEL = { IMAGE: '이미지', VIDEO: '릴스/영상', CAROUSEL_ALBUM: '카드뉴스' };
-const MEDIA_TYPE_ICON = { IMAGE: '🖼️', VIDEO: '🎬', CAROUSEL_ALBUM: '🗂️' };
+// 장표 1장짜리 IMAGE 게시물도 실질적으로 카드뉴스와 같은 콘텐츠라 별도 유형으로 두지 않고
+// 카드뉴스로 합친다 (동기화 시점에 lib/instagramApi.js에서 media_type 자체를 정규화함).
+const MEDIA_TYPE_LABEL = { VIDEO: '릴스/영상', CAROUSEL_ALBUM: '카드뉴스' };
+const MEDIA_TYPE_ICON = { VIDEO: '🎬', CAROUSEL_ALBUM: '🗂️' };
 
 // Tableau의 기본 카테고리 팔레트("Tableau 10")를 그대로 사용해 태블로 느낌을 낸다.
 const TABLEAU10 = ['#4E79A7', '#F28E2B', '#E15759', '#76B7B2', '#59A14F', '#EDC948', '#B07AA1', '#FF9DA7', '#9C755F', '#BAB0AC'];
