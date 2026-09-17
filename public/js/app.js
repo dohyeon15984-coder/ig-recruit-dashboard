@@ -23,7 +23,7 @@ function monthlyBucketed(history, field) {
 // 그래서 지난달도 이번 달과 같은 날짜(1일~오늘 날짜)까지만 합산해서 공평하게 비교한다.
 // pairs: [dateString('YYYY-MM-DD'), value] 배열.
 function monthlySumFairCompare(pairs) {
-  if (!pairs.length) return { total: null, delta: null, isPartial: false };
+  if (!pairs.length) return { total: null, delta: null, isPartial: false, currentMonth: null };
   const sorted = [...pairs].sort((a, b) => a[0].localeCompare(b[0]));
   const months = [...new Set(sorted.map(([d]) => d.slice(0, 7)))];
   const currentMonth = months[months.length - 1];
@@ -31,7 +31,7 @@ function monthlySumFairCompare(pairs) {
 
   const currentRows = sorted.filter(([d]) => d.slice(0, 7) === currentMonth);
   const total = currentRows.reduce((sum, [, v]) => sum + v, 0);
-  if (!priorMonth) return { total, delta: null, isPartial: false };
+  if (!priorMonth) return { total, delta: null, isPartial: false, currentMonth };
 
   const lastDay = Math.max(...currentRows.map(([d]) => Number(d.slice(8, 10))));
   const priorRows = sorted.filter(([d]) => d.slice(0, 7) === priorMonth);
@@ -41,10 +41,10 @@ function monthlySumFairCompare(pairs) {
   // 지난달 같은 기간에 데이터가 아예 없으면(예: 동기화가 그 기간엔 없었음) 0과 비교하는 셈이 되어
   // "+100%"처럼 실제와 다른 증감으로 보일 수 있다 — 이 경우 비교 자체를 하지 않는다.
   const isPartial = lastDay < priorMonthLastDay;
-  if (!priorRowsInRange.length) return { total, delta: null, isPartial, lastDay };
+  if (!priorRowsInRange.length) return { total, delta: null, isPartial, lastDay, currentMonth };
 
   const priorComparable = priorRowsInRange.reduce((sum, [, v]) => sum + v, 0);
-  return { total, delta: total - priorComparable, isPartial, lastDay };
+  return { total, delta: total - priorComparable, isPartial, lastDay, currentMonth };
 }
 
 function renderFollowerHero(data) {
@@ -70,9 +70,16 @@ function renderFollowerHero(data) {
   `;
 }
 
-function renderMonthlyStatHero(elId, title, meaning, pairs) {
+// meaningSuffix 앞에 실제로 집계된 달을 붙인다. 예: 조회수 카드는 "게시물이 발행된 달" 기준이라
+// 이번 달에 아직 게시물이 없으면 지난달 데이터가 표시되는데, 그럴 땐 "이번 달"이 아니라
+// "8월"처럼 실제 달을 명시해야 헷갈리지 않는다.
+function renderMonthlyStatHero(elId, title, meaningSuffix, pairs) {
   const el = document.getElementById(elId);
-  const { total, delta, isPartial, lastDay } = monthlySumFairCompare(pairs);
+  const { total, delta, currentMonth } = monthlySumFairCompare(pairs);
+
+  const nowMonth = new Date().toISOString().slice(0, 7);
+  const monthLabel = !currentMonth ? '이번 달' : currentMonth === nowMonth ? '이번 달' : `${Number(currentMonth.slice(5, 7))}월`;
+  const meaning = `${monthLabel} ${meaningSuffix}`;
 
   el.innerHTML = `
     <div class="hero-title">${title} <span class="hero-title-note">— ${meaning}</span></div>
@@ -80,7 +87,7 @@ function renderMonthlyStatHero(elId, title, meaning, pairs) {
       <div class="follower-hero-value">${total != null ? Math.round(total).toLocaleString() : '-'}</div>
       ${
         delta != null
-          ? `<div class="hero-delta ${delta >= 0 ? 'pos' : 'neg'}">${delta >= 0 ? '+' : ''}${Math.round(delta).toLocaleString()} ${isPartial ? `지난달 1~${lastDay}일 대비 (일수 맞춰 비교)` : '전월 대비'}</div>`
+          ? `<div class="hero-delta ${delta >= 0 ? 'pos' : 'neg'}">${delta >= 0 ? '+' : ''}${Math.round(delta).toLocaleString()} 전월 대비</div>`
           : ''
       }
     </div>
@@ -89,12 +96,12 @@ function renderMonthlyStatHero(elId, title, meaning, pairs) {
 
 function renderViewsMonthlyHero(data) {
   const pairs = data.posts.filter((p) => p.views != null).map((p) => [p.timestamp.slice(0, 10), p.views]);
-  renderMonthlyStatHero('viewsMonthlyHero', '조회수', '이번 달 발행된 게시물이 지금까지 모은 노출 총 횟수', pairs);
+  renderMonthlyStatHero('viewsMonthlyHero', '조회수', '발행된 게시물이 지금까지 모은 노출 총 횟수', pairs);
 }
 
 function renderReachMonthlyHero(data) {
   const pairs = data.history.filter((h) => h.reach != null).map((h) => [h.date, h.reach]);
-  renderMonthlyStatHero('reachMonthlyHero', '도달수', '이번 달 본 사람 수(중복 제외)', pairs);
+  renderMonthlyStatHero('reachMonthlyHero', '도달수', '본 사람 수(중복 제외)', pairs);
 }
 
 function renderDemographics(data) {
