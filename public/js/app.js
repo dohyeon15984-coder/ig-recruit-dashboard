@@ -356,16 +356,12 @@ function updateSortArrows() {
   });
 }
 
-// 팔로워 수는 스냅샷 지표라 "그 날짜 기준 팔로워 수"는 그 날짜 이전(포함) 가장 최근 값으로 본다.
-function followerCountAsOf(history, dateStr) {
-  const before = history.filter((h) => h.follower_count != null && h.date <= dateStr).sort((a, b) => a.date.localeCompare(b.date));
-  return before.length ? before[before.length - 1].follower_count : null;
-}
-
 // 광고 집행 1건의 파생 지표를 계산한다. 도달/참여는 게시물 전체 값을 그대로 쓴다 —
 // 메타 광고 API 연동 없이는 "광고로 발생한" 도달/참여만 따로 떼어낼 방법이 없기 때문.
-// 팔로워당 비용도 마찬가지로 "그 기간 전체 팔로워 증가분" 기준 근사치다.
-function computeAdMetrics(campaign, postsById, history) {
+// 팔로워 증가는 인스타그램 앱 인사이트 > 광고 탭에서 확인한 값을 사용자가 직접 입력해둔
+// 값(campaign.followerGrowth)을 그대로 쓴다 — 계정 전체 순증가로는 광고 효과만 분리할 수
+// 없어서 근사치조차 의미가 없었기 때문에, 정확한 값을 필수 입력으로 바꿨다.
+function computeAdMetrics(campaign, postsById) {
   const post = postsById.get(campaign.postId);
   const days = Math.max(1, Math.round((new Date(campaign.endDate) - new Date(campaign.startDate)) / (24 * 60 * 60 * 1000)) + 1);
   const views = post ? post.views || 0 : 0;
@@ -380,9 +376,7 @@ function computeAdMetrics(campaign, postsById, history) {
   const cpm = reach ? (campaign.spend / reach) * 1000 : null;
   const cpe = engagement ? campaign.spend / engagement : null;
 
-  const followerStart = followerCountAsOf(history, campaign.startDate);
-  const followerEnd = followerCountAsOf(history, campaign.endDate);
-  const followerGrowth = followerStart != null && followerEnd != null ? followerEnd - followerStart : null;
+  const followerGrowth = campaign.followerGrowth != null ? Number(campaign.followerGrowth) : null;
   const costPerFollower = followerGrowth != null && followerGrowth > 0 ? campaign.spend / followerGrowth : null;
 
   return { post, days, views, reach, likes, comments, saved, shares, reposts, engagement, rate, cpm, cpe, followerGrowth, costPerFollower };
@@ -400,7 +394,7 @@ function renderAdsSummary(adCampaigns, posts, history) {
   let totalReach = 0;
   let totalEngagement = 0;
   adCampaigns.forEach((c) => {
-    const m = computeAdMetrics(c, postsById, history);
+    const m = computeAdMetrics(c, postsById);
     totalReach += m.reach;
     totalEngagement += m.engagement;
   });
@@ -430,7 +424,7 @@ function getAdSortValue(c, m, field) {
 function sortAdCampaigns(adCampaigns, postsById, history) {
   const { field, dir } = state.adSort;
   const mult = dir === 'asc' ? 1 : -1;
-  const withMetrics = adCampaigns.map((c) => ({ c, m: computeAdMetrics(c, postsById, history) }));
+  const withMetrics = adCampaigns.map((c) => ({ c, m: computeAdMetrics(c, postsById) }));
   withMetrics.sort((a, b) => {
     const av = getAdSortValue(a.c, a.m, field);
     const bv = getAdSortValue(b.c, b.m, field);
@@ -465,18 +459,15 @@ function renderAdCampaignsTable(adCampaigns, posts, history) {
         ? escapeHtml(captionRaw.slice(0, 24)) + (captionRaw.length > 24 ? '…' : '')
         : '(삭제된 게시물)';
       const displayLabel = c.note ? escapeHtml(c.note) : postLabel;
-      const overrideBadge = m.post?.has_override
-        ? '<span class="post-override-badge">실제 수치 반영 중</span>'
-        : m.post
-          ? '<span class="ad-row-organic-hint info-hint" data-tooltip="메타 API 기본값(오가닉만)이에요. 행을 클릭해서 실제 전체 수치를 입력할 수 있어요">오가닉 수치</span>'
-          : '';
+      const followerGrowthText =
+        c.followerGrowth != null ? `${Number(c.followerGrowth).toLocaleString()}명` : '<span class="ad-follower-growth-missing">입력 필요</span>';
       return `
       <tr class="ad-row" data-post-id="${m.post?.id || ''}">
         <td>${index + 1}</td>
         <td class="caption-cell">
           <div style="display:flex; align-items:center; gap:8px;">
             ${thumbHtml(m.post || {}, 'row-thumb')}
-            <div>${displayLabel}${overrideBadge ? `<br>${overrideBadge}` : ''}</div>
+            <div>${displayLabel}</div>
           </div>
         </td>
         <td>${c.startDate} ~ ${c.endDate}</td>
@@ -492,7 +483,7 @@ function renderAdCampaignsTable(adCampaigns, posts, history) {
         <td>${(m.rate * 100).toFixed(1)}%</td>
         <td>${m.cpm != null ? Math.round(m.cpm).toLocaleString() + '원' : '-'}</td>
         <td>${m.cpe != null ? Math.round(m.cpe).toLocaleString() + '원' : '-'}</td>
-        <td>${m.followerGrowth != null ? m.followerGrowth.toLocaleString() + '명' : '-'}</td>
+        <td class="ad-follower-growth-cell info-hint" data-ad-id="${c.id}" data-tooltip="인스타그램 앱 인사이트 > 광고 탭에서 확인한 팔로우 수를 입력하세요. 클릭하면 수정할 수 있어요">${followerGrowthText}</td>
         <td>${m.costPerFollower != null ? Math.round(m.costPerFollower).toLocaleString() + '원' : '-'}</td>
         <td><button class="ad-delete-btn" data-ad-id="${c.id}">삭제</button></td>
       </tr>`;
@@ -513,6 +504,38 @@ function renderAdCampaignsTable(adCampaigns, posts, history) {
   tbody.querySelectorAll('.ad-row').forEach((tr) => {
     if (!tr.dataset.postId) return;
     tr.addEventListener('click', () => openPostModal(tr.dataset.postId));
+  });
+
+  // 팔로워 증가(광고 기여)는 메타 마케팅 API 연동 없이는 자동으로 가져올 수 없어, 사용자가
+  // 인스타그램 앱 인사이트 > 광고 탭에서 확인한 값을 직접 입력해두는 값이다. 언제든 이 칸을
+  // 클릭해서 수정할 수 있다.
+  tbody.querySelectorAll('.ad-follower-growth-cell').forEach((td) => {
+    td.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const campaign = adCampaigns.find((c) => c.id === td.dataset.adId);
+      if (!campaign) return;
+      const input = window.prompt(
+        '인스타그램 앱 인사이트 > 광고 탭에서 확인한 "팔로우" 수를 입력하세요.',
+        campaign.followerGrowth != null ? campaign.followerGrowth : ''
+      );
+      if (input === null) return;
+      const trimmed = input.trim();
+      if (trimmed === '') {
+        alert('팔로워 증가는 필수 값이에요. 빈 값으로 저장할 수 없어요.');
+        return;
+      }
+      const n = Number(trimmed);
+      if (!Number.isFinite(n)) {
+        alert('숫자만 입력해주세요.');
+        return;
+      }
+      await fetch('/api/ad-campaigns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...campaign, followerGrowth: n })
+      });
+      await refresh();
+    });
   });
 }
 
@@ -566,13 +589,14 @@ function setupAdCampaignForm() {
     const startDate = document.getElementById('adStartDate').value;
     const endDate = document.getElementById('adEndDate').value;
     const spend = spendInput.value.replace(/[^0-9]/g, '');
+    const followerGrowth = document.getElementById('adFollowerGrowth').value;
     const note = document.getElementById('adNote').value;
-    if (!postId || !startDate || !endDate || !spend) return;
+    if (!postId || !startDate || !endDate || !spend || followerGrowth === '') return;
 
     await fetch('/api/ad-campaigns', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ postId, startDate, endDate, spend, note })
+      body: JSON.stringify({ postId, startDate, endDate, spend, followerGrowth, note })
     });
     e.target.reset();
     await refresh();

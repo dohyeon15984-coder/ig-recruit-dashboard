@@ -238,11 +238,19 @@ router.delete('/categories/:name', (req, res) => {
 // 게시물 유료 광고 집행 내역 CRUD. 메타 광고 API 연동이 아니라, Ads Manager에서
 // 직접 확인한 값을 사용자가 수동으로 입력해두는 용도.
 router.post('/ad-campaigns', (req, res) => {
-  const { id, postId, spend, startDate, endDate, note } = req.body || {};
-  if (!postId || !startDate || !endDate || spend == null) {
-    return res.status(400).json({ error: '게시물, 기간, 광고비는 필수예요.' });
+  const { id, postId, spend, startDate, endDate, followerGrowth, note } = req.body || {};
+  if (!postId || !startDate || !endDate || spend == null || followerGrowth == null || followerGrowth === '') {
+    return res.status(400).json({ error: '게시물, 기간, 광고비, 팔로워 증가(광고 기여)는 필수예요.' });
   }
-  const record = store.saveAdCampaign({ id, postId, spend: Number(spend), startDate, endDate, note: note || '' });
+  const record = store.saveAdCampaign({
+    id,
+    postId,
+    spend: Number(spend),
+    startDate,
+    endDate,
+    followerGrowth: Number(followerGrowth),
+    note: note || ''
+  });
   res.json({ adCampaign: record, adCampaigns: store.loadAdCampaigns() });
 });
 

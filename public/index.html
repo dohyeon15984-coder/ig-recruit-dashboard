@@ -155,6 +155,10 @@
             <label for="adSpend">광고비 (원)</label>
             <input type="text" inputmode="numeric" id="adSpend" placeholder="예: 150,000" required>
           </div>
+          <div class="ad-form-field">
+            <label for="adFollowerGrowth" class="info-hint" data-tooltip="인스타그램 앱 인사이트 > 광고 탭 > 프로필 활동 > 팔로우 수치를 입력하세요">팔로워 증가(광고 기여)</label>
+            <input type="number" min="0" id="adFollowerGrowth" placeholder="예: 64" required>
+          </div>
           <div class="ad-form-field ad-form-field-wide">
             <label for="adNote">메모 (선택)</label>
             <input type="text" id="adNote" placeholder="예: 하반기 공채 홍보">
@@ -165,7 +169,7 @@
 
       <section class="panel">
         <h2>광고 집행 내역</h2>
-        <div class="panel-desc">도달·참여·팔로워 증가는 광고 효과만 분리된 값이 아니라, 해당 게시물/기간의 전체 수치예요</div>
+        <div class="panel-desc">도달·참여는 광고 효과만 분리된 값이 아니라 해당 게시물/기간의 전체 수치예요. 팔로워 증가는 인스타그램 앱 인사이트 &gt; 광고 탭에서 확인한 광고 기여분을 직접 입력한 값이에요.</div>
         <div class="table-wrap">
           <table id="adCampaignsTable">
             <thead>
