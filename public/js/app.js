@@ -770,6 +770,7 @@ function openPostModal(postId) {
   const body = document.getElementById('postModalBody');
   const er = engagementRate(post);
   const sr = saveRate(post);
+  const relatedAdCampaigns = (state.data.adCampaigns || []).filter((c) => c.postId === post.id);
 
   body.innerHTML = `
   <div class="modal-layout">
@@ -838,6 +839,28 @@ function openPostModal(postId) {
         <button type="button" id="postOverrideSave" class="btn-primary">저장</button>
       </div>
     </div>
+
+    ${
+      relatedAdCampaigns.length
+        ? `
+    <div class="post-override-section">
+      <div class="post-override-title">광고 집행 팔로워 증가</div>
+      <div class="post-override-desc">이 게시물에 연결된 광고 기간별로, 인스타그램 앱 인사이트 &gt; 광고 탭에서 확인한 팔로우 수를 입력하세요.</div>
+      ${relatedAdCampaigns
+        .map(
+          (c) => `
+      <div class="post-override-field">
+        <label>${c.startDate} ~ ${c.endDate}${c.note ? ' · ' + escapeHtml(c.note) : ''}</label>
+        <input type="number" min="0" class="ad-follower-growth-input" data-ad-id="${c.id}" value="${c.followerGrowth ?? ''}" placeholder="예: 64">
+      </div>`
+        )
+        .join('')}
+      <div class="post-override-actions">
+        <button type="button" id="adFollowerGrowthSaveAll" class="btn-primary">저장</button>
+      </div>
+    </div>`
+        : ''
+    }
     </div>
   </div>
   `;
@@ -888,6 +911,25 @@ function openPostModal(postId) {
   if (resetBtn) {
     resetBtn.addEventListener('click', async () => {
       await fetch(`/api/post-overrides/${post.id}`, { method: 'DELETE' });
+      await refresh();
+      openPostModal(post.id);
+    });
+  }
+
+  const adFollowerGrowthSaveAll = document.getElementById('adFollowerGrowthSaveAll');
+  if (adFollowerGrowthSaveAll) {
+    adFollowerGrowthSaveAll.addEventListener('click', async () => {
+      const inputs = [...document.querySelectorAll('.ad-follower-growth-input')];
+      for (const input of inputs) {
+        if (input.value === '') continue;
+        const campaign = relatedAdCampaigns.find((c) => c.id === input.dataset.adId);
+        if (!campaign) continue;
+        await fetch('/api/ad-campaigns', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...campaign, followerGrowth: Number(input.value) })
+        });
+      }
       await refresh();
       openPostModal(post.id);
     });
