@@ -507,7 +507,6 @@ function renderAdCampaignsTable(adCampaigns, posts) {
   tbody.querySelectorAll('.ad-delete-btn').forEach((btn) => {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
-      if (!confirm('이 광고 집행 내역을 삭제할까요?')) return;
       await fetch(`/api/ad-campaigns/${btn.dataset.adId}`, { method: 'DELETE' });
       await refresh();
     });
