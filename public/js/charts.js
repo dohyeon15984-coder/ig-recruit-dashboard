@@ -25,7 +25,7 @@ function engagementRate(post) {
   return interactions / base;
 }
 
-function groupAvgEngagement(posts, keyFn, labelFn) {
+function groupAvgEngagement(posts, keyFn, labelFn, valueFn = engagementRate) {
   const groups = new Map();
   for (const post of posts) {
     const key = keyFn(post);
@@ -37,10 +37,26 @@ function groupAvgEngagement(posts, keyFn, labelFn) {
     .map(([key, items]) => ({
       key,
       label: labelFn ? labelFn(key) : key,
-      value: items.reduce((sum, p) => sum + engagementRate(p), 0) / items.length
+      value: items.reduce((sum, p) => sum + valueFn(p), 0) / items.length
     }))
     .sort((a, b) => b.value - a.value);
 }
+
+// 도달 대비 특정 지표 하나만의 비율 (좋아요 비율, 공유 비율 등 — 참여율의 구성 요소를 개별로 본다).
+function metricRate(post, field) {
+  const base = post.reach || post.views || 0;
+  return base ? (post[field] || 0) / base : 0;
+}
+
+// 카테고리별 참여율 차트/게시물 목록에서 공통으로 쓰는 지표 옵션. app.js에서도 그대로 참조한다.
+const CATEGORY_METRIC_OPTIONS = {
+  all: { label: '전체 참여율', rateFn: engagementRate },
+  like_count: { label: '좋아요', rateFn: (p) => metricRate(p, 'like_count') },
+  comments_count: { label: '댓글', rateFn: (p) => metricRate(p, 'comments_count') },
+  saved: { label: '저장', rateFn: (p) => metricRate(p, 'saved') },
+  shares: { label: '공유', rateFn: (p) => metricRate(p, 'shares') },
+  reposts: { label: '리포스트', rateFn: (p) => metricRate(p, 'reposts') }
+};
 
 let followerChartInstance, categoryChartInstance, ageChartInstance, reachSparklineInstance, categoryDonutChartInstance;
 
@@ -610,9 +626,10 @@ function makeHorizontalPercentBarValueLabelPlugin(textColor) {
   };
 }
 
-function renderCategoryChart(posts, onCategoryClick) {
+function renderCategoryChart(posts, onCategoryClick, metric = 'all') {
+  const metricConfig = CATEGORY_METRIC_OPTIONS[metric] || CATEGORY_METRIC_OPTIONS.all;
   const tagged = posts.filter((p) => p.category);
-  const data = groupAvgEngagement(tagged, (p) => p.category);
+  const data = groupAvgEngagement(tagged, (p) => p.category, null, metricConfig.rateFn);
   const ctx = document.getElementById('categoryChart');
   if (categoryChartInstance) categoryChartInstance.destroy();
   const values = data.map((d) => +(d.value * 100).toFixed(1));
@@ -623,7 +640,7 @@ function renderCategoryChart(posts, onCategoryClick) {
       labels: data.map((d) => d.label),
       datasets: [
         {
-          label: '평균 참여율',
+          label: metricConfig.label,
           data: values,
           backgroundColor: data.map((_, i) => TABLEAU10[i % TABLEAU10.length]),
           borderRadius: 6,

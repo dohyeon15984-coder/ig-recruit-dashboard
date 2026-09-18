@@ -122,7 +122,18 @@
 
       <section class="panel-row">
         <div class="panel panel-half">
-          <h2>카테고리별 참여율 <span class="hero-title-note">— 높을수록 그 카테고리 게시물에 반응이 좋았다는 뜻이에요</span></h2>
+          <div class="panel-header-row">
+            <h2>카테고리별 참여율</h2>
+            <select id="categoryMetricSelect" class="granularity-select">
+              <option value="all">전체 참여율</option>
+              <option value="like_count">좋아요</option>
+              <option value="comments_count">댓글</option>
+              <option value="saved">저장</option>
+              <option value="shares">공유</option>
+              <option value="reposts">리포스트</option>
+            </select>
+          </div>
+          <div class="panel-desc">높을수록 그 카테고리 게시물에 반응이 좋았다는 뜻이에요 (도달 대비 선택한 지표 비율)</div>
           <div class="chart-wrap"><canvas id="categoryChart"></canvas></div>
         </div>
         <div class="panel panel-half">
