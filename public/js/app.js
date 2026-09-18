@@ -215,10 +215,10 @@ function renderCategoryEngagementPostList(posts, category) {
     el.innerHTML = '';
     return;
   }
-  const matches = posts.filter((p) => p.category === category).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  const matches = posts.filter((p) => p.category === category).sort((a, b) => engagementRate(b) - engagementRate(a));
   el.innerHTML = `
     <div class="category-engagement-post-list-header">
-      <span>"${escapeHtml(category)}" 게시물 ${matches.length}개 (참여율순 아님, 최신순)</span>
+      <span>"${escapeHtml(category)}" 게시물 ${matches.length}개 (참여율순)</span>
       <button type="button" class="category-engagement-post-list-close" aria-label="닫기">✕</button>
     </div>
     ${matches.map(categoryEngagementRowHtml).join('') || '<p class="insight-desc">게시물이 없어요.</p>'}
