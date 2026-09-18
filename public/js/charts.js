@@ -588,18 +588,64 @@ function renderViewsOnlyChart(posts, mode, notesByPeriod, onPointClick) {
   });
 }
 
+// 세로 막대 위에 참여율(%) 값을 직접 표시.
+function makePercentBarValueLabelPlugin(textColor) {
+  return {
+    id: 'percentBarValueLabel',
+    afterDatasetsDraw(chart) {
+      const { ctx } = chart;
+      const meta = chart.getDatasetMeta(0);
+      meta.data.forEach((bar, index) => {
+        const value = chart.data.datasets[0].data[index];
+        if (value == null) return;
+        ctx.save();
+        ctx.fillStyle = textColor;
+        ctx.font = "700 11px 'Pretendard', sans-serif";
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(`${value}%`, bar.x, bar.y - 8);
+        ctx.restore();
+      });
+    }
+  };
+}
+
+// 가로 막대(indexAxis:'y') 오른쪽 끝에 참여율(%) 값을 직접 표시.
+function makeHorizontalPercentBarValueLabelPlugin(textColor) {
+  return {
+    id: 'horizontalPercentBarValueLabel',
+    afterDatasetsDraw(chart) {
+      const { ctx } = chart;
+      const meta = chart.getDatasetMeta(0);
+      meta.data.forEach((bar, index) => {
+        const value = chart.data.datasets[0].data[index];
+        if (value == null) return;
+        ctx.save();
+        ctx.fillStyle = textColor;
+        ctx.font = "700 11px 'Pretendard', sans-serif";
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`${value}%`, bar.x + 6, bar.y);
+        ctx.restore();
+      });
+    }
+  };
+}
+
 function renderMediaTypeChart(posts) {
   const data = groupAvgEngagement(posts, (p) => p.media_type, (k) => MEDIA_TYPE_LABEL[k] || k);
   const ctx = document.getElementById('mediaTypeChart');
   if (mediaTypeChartInstance) mediaTypeChartInstance.destroy();
+  const values = data.map((d) => +(d.value * 100).toFixed(1));
   mediaTypeChartInstance = new Chart(ctx, {
     type: 'bar',
+    plugins: [makePercentBarValueLabelPlugin('#33403a')],
     data: {
       labels: data.map((d) => d.label),
       datasets: [
         {
           label: '평균 참여율',
-          data: data.map((d) => +(d.value * 100).toFixed(1)),
+          data: values,
           backgroundColor: data.map((_, i) => TABLEAU10[i % TABLEAU10.length]),
           borderRadius: 6,
           maxBarThickness: 56
@@ -609,28 +655,31 @@ function renderMediaTypeChart(posts) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      layout: { padding: { top: 20 } },
       plugins: { legend: { display: false } },
       scales: {
-        y: { ticks: { callback: (v) => v + '%' }, grid: { color: '#eef0f5' } },
+        y: { ticks: { callback: (v) => v + '%' }, grid: { color: '#eef0f5' }, suggestedMax: Math.max(0, ...values) * 1.2 },
         x: { grid: { display: false } }
       }
     }
   });
 }
 
-function renderCategoryChart(posts) {
+function renderCategoryChart(posts, onCategoryClick) {
   const tagged = posts.filter((p) => p.category);
   const data = groupAvgEngagement(tagged, (p) => p.category);
   const ctx = document.getElementById('categoryChart');
   if (categoryChartInstance) categoryChartInstance.destroy();
+  const values = data.map((d) => +(d.value * 100).toFixed(1));
   categoryChartInstance = new Chart(ctx, {
     type: 'bar',
+    plugins: [makeHorizontalPercentBarValueLabelPlugin('#33403a')],
     data: {
       labels: data.map((d) => d.label),
       datasets: [
         {
           label: '평균 참여율',
-          data: data.map((d) => +(d.value * 100).toFixed(1)),
+          data: values,
           backgroundColor: data.map((_, i) => TABLEAU10[i % TABLEAU10.length]),
           borderRadius: 6,
           maxBarThickness: 22
@@ -641,9 +690,17 @@ function renderCategoryChart(posts) {
       responsive: true,
       maintainAspectRatio: false,
       indexAxis: 'y',
+      layout: { padding: { right: 36 } },
+      onClick: (evt, elements) => {
+        if (!elements.length || !onCategoryClick) return;
+        onCategoryClick(data[elements[0].index].label);
+      },
+      onHover: (evt, elements) => {
+        if (evt.native && evt.native.target) evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+      },
       plugins: { legend: { display: false } },
       scales: {
-        x: { ticks: { callback: (v) => v + '%' }, grid: { color: '#eef0f5' } },
+        x: { ticks: { callback: (v) => v + '%' }, grid: { color: '#eef0f5' }, suggestedMax: Math.max(0, ...values) * 1.2 },
         y: { grid: { display: false } }
       }
     }

@@ -143,6 +143,7 @@ const state = {
   adSort: { field: 'startDate', dir: 'desc' },
   postsMonthFilter: 'all',
   postsCategoryFilter: 'all',
+  categoryEngagementFilter: null,
   data: null
 };
 
@@ -190,6 +191,45 @@ function miniPostRowHtml(p, rank, metricValue) {
       </div>
       <div class="mini-post-metric">${metricValue.toLocaleString()}</div>
     </div>`;
+}
+
+// 카테고리별 참여율 차트에서 막대를 클릭했을 때, 그 카테고리 게시물만 골라 작은 리스트로 보여준다.
+// 같은 막대를 다시 클릭하면 닫히는 토글 방식.
+function categoryEngagementRowHtml(p) {
+  const er = engagementRate(p);
+  return `
+    <div class="mini-post-row" data-post-id="${p.id}">
+      <div class="mini-post-rank">${new Date(p.timestamp).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}</div>
+      ${thumbHtml(p, 'mini-post-thumb')}
+      <div class="mini-post-info">
+        <div class="mini-post-caption">${escapeHtml(p.caption || '(캡션 없음)').slice(0, 40)}</div>
+        <div class="mini-post-meta">${MEDIA_TYPE_LABEL[p.media_type] || p.media_type}</div>
+      </div>
+      <div class="mini-post-metric">${(er * 100).toFixed(1)}%</div>
+    </div>`;
+}
+
+function renderCategoryEngagementPostList(posts, category) {
+  const el = document.getElementById('categoryEngagementPostList');
+  if (!category) {
+    el.innerHTML = '';
+    return;
+  }
+  const matches = posts.filter((p) => p.category === category).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  el.innerHTML = `
+    <div class="category-engagement-post-list-header">
+      <span>"${escapeHtml(category)}" 게시물 ${matches.length}개 (참여율순 아님, 최신순)</span>
+      <button type="button" class="category-engagement-post-list-close" aria-label="닫기">✕</button>
+    </div>
+    ${matches.map(categoryEngagementRowHtml).join('') || '<p class="insight-desc">게시물이 없어요.</p>'}
+  `;
+  el.querySelectorAll('.mini-post-row').forEach((row) => {
+    row.addEventListener('click', () => openPostModal(row.dataset.postId));
+  });
+  el.querySelector('.category-engagement-post-list-close')?.addEventListener('click', () => {
+    state.categoryEngagementFilter = null;
+    renderCategoryEngagementPostList(posts, null);
+  });
 }
 
 function renderMiniTopList(containerId, posts, field) {
@@ -1059,7 +1099,11 @@ function renderAll(data) {
     makePointClickHandler('reach', '도달', 'reach')
   );
   renderMediaTypeChart(data.posts);
-  renderCategoryChart(data.posts);
+  renderCategoryChart(data.posts, (category) => {
+    state.categoryEngagementFilter = state.categoryEngagementFilter === category ? null : category;
+    renderCategoryEngagementPostList(data.posts, state.categoryEngagementFilter);
+  });
+  renderCategoryEngagementPostList(data.posts, state.categoryEngagementFilter);
   renderCategoryDonutSection(data.posts);
 }
 
