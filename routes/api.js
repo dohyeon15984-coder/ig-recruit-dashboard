@@ -235,22 +235,33 @@ router.delete('/categories/:name', (req, res) => {
   res.json({ categories: store.deleteCategory(req.params.name) });
 });
 
-// 게시물 유료 광고 집행 내역 CRUD. 메타 광고 API 연동이 아니라, Ads Manager에서
-// 직접 확인한 값을 사용자가 수동으로 입력해두는 용도.
+// 게시물 유료 광고 집행 내역 CRUD. 메타 마케팅 API 연동 없이, 인스타그램 앱 인사이트의
+// "광고" 탭(전체 탭과 별개로 광고 기여분만 보여주는 화면)에서 확인한 값을 사용자가 직접
+// 입력해두는 용도 — 게시물 자체의(오가닉+유료 합산) 수치와는 완전히 분리된 광고 전용 값이다.
+const AD_METRIC_FIELDS = ['views', 'reach', 'likes', 'saved', 'shares', 'followerGrowth', 'profileVisits'];
+
 router.post('/ad-campaigns', (req, res) => {
-  const { id, postId, spend, startDate, endDate, followerGrowth, note } = req.body || {};
-  if (!postId || !startDate || !endDate || spend == null || followerGrowth == null || followerGrowth === '') {
-    return res.status(400).json({ error: '게시물, 기간, 광고비, 팔로워 증가(광고 기여)는 필수예요.' });
+  const { id, postId, spend, startDate, endDate, note, ...body } = req.body || {};
+  if (!postId || !startDate || !endDate || spend == null) {
+    return res.status(400).json({ error: '게시물, 기간, 광고비는 필수예요.' });
   }
-  const record = store.saveAdCampaign({
-    id,
-    postId,
-    spend: Number(spend),
-    startDate,
-    endDate,
-    followerGrowth: Number(followerGrowth),
-    note: note || ''
-  });
+
+  // 신규 등록일 때만 광고 지표 전체를 필수로 요구한다. 기존 건을 표에서 한 칸씩 고칠 때는
+  // (예: 아직 못 채운 옛날 데이터) 나머지 값이 없어도 그 필드만 부분 수정할 수 있어야 한다.
+  const isNew = !id || !store.loadAdCampaigns().some((c) => c.id === id);
+  if (isNew) {
+    for (const field of AD_METRIC_FIELDS) {
+      if (body[field] == null || body[field] === '') {
+        return res.status(400).json({ error: '광고 성과 지표(조회수·도달·좋아요 및 공감·저장·공유·팔로워 증가·프로필 방문)는 모두 필수예요.' });
+      }
+    }
+  }
+  const metrics = {};
+  for (const field of AD_METRIC_FIELDS) {
+    if (body[field] != null && body[field] !== '') metrics[field] = Number(body[field]);
+  }
+
+  const record = store.saveAdCampaign({ id, postId, spend: Number(spend), startDate, endDate, note: note || '', ...metrics });
   res.json({ adCampaign: record, adCampaigns: store.loadAdCampaigns() });
 });
 

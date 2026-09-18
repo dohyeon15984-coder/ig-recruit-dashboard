@@ -357,46 +357,42 @@ function updateSortArrows() {
 }
 
 // 광고 집행 1건의 파생 지표를 계산한다. 도달/참여는 게시물 전체 값을 그대로 쓴다 —
-// 메타 광고 API 연동 없이는 "광고로 발생한" 도달/참여만 따로 떼어낼 방법이 없기 때문.
-// 팔로워 증가는 인스타그램 앱 인사이트 > 광고 탭에서 확인한 값을 사용자가 직접 입력해둔
-// 값(campaign.followerGrowth)을 그대로 쓴다 — 계정 전체 순증가로는 광고 효과만 분리할 수
-// 없어서 근사치조차 의미가 없었기 때문에, 정확한 값을 필수 입력으로 바꿨다.
-function computeAdMetrics(campaign, postsById) {
-  const post = postsById.get(campaign.postId);
+// 인스타그램 앱 인사이트 > 광고 탭(전체 탭과 별개로 광고에만 귀속된 수치를 보여주는 화면)에서
+// 확인한 값을 사용자가 직접 입력해둔 것을 그대로 쓴다 — 메타 마케팅 API 연동 없이는 "광고로
+// 발생한" 도달/참여/팔로워를 게시물의 오가닉+유료 합산 수치에서 따로 떼어낼 방법이 없기
+// 때문에, 게시물 데이터를 참조하지 않고 광고 지표를 완전히 독립적인 값으로 다룬다.
+const AD_METRIC_FIELDS = ['views', 'reach', 'likes', 'saved', 'shares', 'followerGrowth', 'profileVisits'];
+
+function computeAdMetrics(campaign) {
   const days = Math.max(1, Math.round((new Date(campaign.endDate) - new Date(campaign.startDate)) / (24 * 60 * 60 * 1000)) + 1);
-  const views = post ? post.views || 0 : 0;
-  const reach = post ? post.reach || 0 : 0;
-  const likes = post ? post.like_count || 0 : 0;
-  const comments = post ? post.comments_count || 0 : 0;
-  const saved = post ? post.saved || 0 : 0;
-  const shares = post ? post.shares || 0 : 0;
-  const reposts = post ? post.reposts || 0 : 0;
-  const engagement = likes + comments + saved + shares + reposts;
-  const rate = post ? engagementRate(post) : 0;
+  const metrics = {};
+  for (const field of AD_METRIC_FIELDS) metrics[field] = campaign[field] != null ? Number(campaign[field]) : null;
+
+  const { views, reach, likes, saved, shares, followerGrowth, profileVisits } = metrics;
+  const hasEngagementInputs = likes != null && saved != null && shares != null;
+  const engagement = hasEngagementInputs ? likes + saved + shares : null;
+  const rate = engagement != null && reach ? engagement / reach : null;
   const cpm = reach ? (campaign.spend / reach) * 1000 : null;
   const cpe = engagement ? campaign.spend / engagement : null;
-
-  const followerGrowth = campaign.followerGrowth != null ? Number(campaign.followerGrowth) : null;
   const costPerFollower = followerGrowth != null && followerGrowth > 0 ? campaign.spend / followerGrowth : null;
 
-  return { post, days, views, reach, likes, comments, saved, shares, reposts, engagement, rate, cpm, cpe, followerGrowth, costPerFollower };
+  return { days, views, reach, likes, saved, shares, engagement, rate, cpm, cpe, followerGrowth, profileVisits, costPerFollower };
 }
 
-function renderAdsSummary(adCampaigns, posts, history) {
+function renderAdsSummary(adCampaigns) {
   const el = document.getElementById('adsSummaryRow');
   if (!adCampaigns.length) {
     el.innerHTML = '<div class="ad-stat-card"><div class="ad-stat-label">광고 집행 내역</div><div class="ad-stat-value">아직 없어요</div></div>';
     return;
   }
 
-  const postsById = new Map(posts.map((p) => [p.id, p]));
   const totalSpend = adCampaigns.reduce((sum, c) => sum + Number(c.spend || 0), 0);
   let totalReach = 0;
   let totalEngagement = 0;
   adCampaigns.forEach((c) => {
-    const m = computeAdMetrics(c, postsById);
-    totalReach += m.reach;
-    totalEngagement += m.engagement;
+    const m = computeAdMetrics(c);
+    totalReach += m.reach || 0;
+    totalEngagement += m.engagement || 0;
   });
   const avgCpm = totalReach ? (totalSpend / totalReach) * 1000 : null;
   const avgCpe = totalEngagement ? totalSpend / totalEngagement : null;
@@ -421,10 +417,10 @@ function getAdSortValue(c, m, field) {
   return 0;
 }
 
-function sortAdCampaigns(adCampaigns, postsById, history) {
+function sortAdCampaigns(adCampaigns) {
   const { field, dir } = state.adSort;
   const mult = dir === 'asc' ? 1 : -1;
-  const withMetrics = adCampaigns.map((c) => ({ c, m: computeAdMetrics(c, postsById) }));
+  const withMetrics = adCampaigns.map((c) => ({ c, m: computeAdMetrics(c) }));
   withMetrics.sort((a, b) => {
     const av = getAdSortValue(a.c, a.m, field);
     const bv = getAdSortValue(b.c, b.m, field);
@@ -441,7 +437,27 @@ function updateAdSortArrows() {
   });
 }
 
-function renderAdCampaignsTable(adCampaigns, posts, history) {
+// 광고 지표 칸의 라벨/툴팁. 표 렌더링과 클릭 편집 프롬프트 양쪽에서 같이 쓴다.
+const AD_METRIC_LABELS = {
+  views: '조회수',
+  reach: '도달',
+  likes: '좋아요 및 공감',
+  saved: '저장',
+  shares: '공유',
+  followerGrowth: '팔로우',
+  profileVisits: '프로필 방문'
+};
+
+function adMetricCellHtml(campaign, field) {
+  const value = campaign[field];
+  const text =
+    value != null
+      ? `${Number(value).toLocaleString()}${field === 'followerGrowth' ? '명' : ''}`
+      : '<span class="ad-follower-growth-missing">입력 필요</span>';
+  return `<td class="ad-metric-cell info-hint" data-ad-id="${campaign.id}" data-field="${field}" data-tooltip="인스타그램 앱 인사이트 > 광고 탭에서 확인한 ${AD_METRIC_LABELS[field]} 값이에요. 클릭하면 수정할 수 있어요">${text}</td>`;
+}
+
+function renderAdCampaignsTable(adCampaigns, posts) {
   const tbody = document.getElementById('adCampaignsTableBody');
   updateAdSortArrows();
   if (!adCampaigns.length) {
@@ -450,40 +466,38 @@ function renderAdCampaignsTable(adCampaigns, posts, history) {
   }
 
   const postsById = new Map(posts.map((p) => [p.id, p]));
-  const sorted = sortAdCampaigns(adCampaigns, postsById, history);
+  const sorted = sortAdCampaigns(adCampaigns);
 
   tbody.innerHTML = sorted
     .map(({ c, m }, index) => {
-      const captionRaw = m.post ? m.post.caption || '(캡션 없음)' : null;
+      const post = postsById.get(c.postId);
+      const captionRaw = post ? post.caption || '(캡션 없음)' : null;
       const postLabel = captionRaw
         ? escapeHtml(captionRaw.slice(0, 24)) + (captionRaw.length > 24 ? '…' : '')
         : '(삭제된 게시물)';
       const displayLabel = c.note ? escapeHtml(c.note) : postLabel;
-      const followerGrowthText =
-        c.followerGrowth != null ? `${Number(c.followerGrowth).toLocaleString()}명` : '<span class="ad-follower-growth-missing">입력 필요</span>';
       return `
-      <tr class="ad-row" data-post-id="${m.post?.id || ''}">
+      <tr class="ad-row" data-post-id="${post?.id || ''}">
         <td>${index + 1}</td>
         <td class="caption-cell">
           <div style="display:flex; align-items:center; gap:8px;">
-            ${thumbHtml(m.post || {}, 'row-thumb')}
+            ${thumbHtml(post || {}, 'row-thumb')}
             <div>${displayLabel}</div>
           </div>
         </td>
         <td>${c.startDate} ~ ${c.endDate}</td>
         <td>${m.days}일</td>
         <td>${Math.round(Number(c.spend)).toLocaleString()}원</td>
-        <td>${m.views.toLocaleString()}</td>
-        <td>${m.reach.toLocaleString()}</td>
-        <td>${m.likes.toLocaleString()}</td>
-        <td>${m.comments.toLocaleString()}</td>
-        <td>${m.saved.toLocaleString()}</td>
-        <td>${m.shares.toLocaleString()}</td>
-        <td>${m.reposts.toLocaleString()}</td>
-        <td>${(m.rate * 100).toFixed(1)}%</td>
+        ${adMetricCellHtml(c, 'views')}
+        ${adMetricCellHtml(c, 'reach')}
+        ${adMetricCellHtml(c, 'likes')}
+        ${adMetricCellHtml(c, 'saved')}
+        ${adMetricCellHtml(c, 'shares')}
+        <td>${m.rate != null ? (m.rate * 100).toFixed(1) + '%' : '-'}</td>
         <td>${m.cpm != null ? Math.round(m.cpm).toLocaleString() + '원' : '-'}</td>
         <td>${m.cpe != null ? Math.round(m.cpe).toLocaleString() + '원' : '-'}</td>
-        <td class="ad-follower-growth-cell info-hint" data-ad-id="${c.id}" data-tooltip="인스타그램 앱 인사이트 > 광고 탭에서 확인한 팔로우 수를 입력하세요. 클릭하면 수정할 수 있어요">${followerGrowthText}</td>
+        ${adMetricCellHtml(c, 'profileVisits')}
+        ${adMetricCellHtml(c, 'followerGrowth')}
         <td>${m.costPerFollower != null ? Math.round(m.costPerFollower).toLocaleString() + '원' : '-'}</td>
         <td><button class="ad-delete-btn" data-ad-id="${c.id}">삭제</button></td>
       </tr>`;
@@ -499,29 +513,29 @@ function renderAdCampaignsTable(adCampaigns, posts, history) {
     });
   });
 
-  // 행을 클릭하면 그 게시물 상세로 바로 이동 — "실제 전체 수치 입력" 폼이 거기 있어서,
-  // 표에 보이는 오가닉 수치가 실제와 다르면 바로 고칠 수 있게 한다.
+  // 행을 클릭하면 그 게시물 상세로 이동해서 실제 내용을 확인할 수 있다 (광고 수치 자체는
+  // 이제 게시물 데이터와 무관해서, 광고 지표는 아래처럼 표에서 직접 고친다).
   tbody.querySelectorAll('.ad-row').forEach((tr) => {
     if (!tr.dataset.postId) return;
     tr.addEventListener('click', () => openPostModal(tr.dataset.postId));
   });
 
-  // 팔로워 증가(광고 기여)는 메타 마케팅 API 연동 없이는 자동으로 가져올 수 없어, 사용자가
-  // 인스타그램 앱 인사이트 > 광고 탭에서 확인한 값을 직접 입력해두는 값이다. 언제든 이 칸을
-  // 클릭해서 수정할 수 있다.
-  tbody.querySelectorAll('.ad-follower-growth-cell').forEach((td) => {
+  // 광고 지표는 메타 마케팅 API 연동 없이는 자동으로 가져올 수 없어, 사용자가 인스타그램 앱
+  // 인사이트 > 광고 탭에서 확인한 값을 직접 입력해두는 값이다. 언제든 칸을 클릭해서 수정할 수 있다.
+  tbody.querySelectorAll('.ad-metric-cell').forEach((td) => {
     td.addEventListener('click', async (e) => {
       e.stopPropagation();
       const campaign = adCampaigns.find((c) => c.id === td.dataset.adId);
       if (!campaign) return;
+      const field = td.dataset.field;
       const input = window.prompt(
-        '인스타그램 앱 인사이트 > 광고 탭에서 확인한 "팔로우" 수를 입력하세요.',
-        campaign.followerGrowth != null ? campaign.followerGrowth : ''
+        `인스타그램 앱 인사이트 > 광고 탭에서 확인한 "${AD_METRIC_LABELS[field]}" 값을 입력하세요.`,
+        campaign[field] != null ? campaign[field] : ''
       );
       if (input === null) return;
       const trimmed = input.trim();
       if (trimmed === '') {
-        alert('팔로워 증가는 필수 값이에요. 빈 값으로 저장할 수 없어요.');
+        alert('빈 값으로 저장할 수 없어요.');
         return;
       }
       const n = Number(trimmed);
@@ -532,7 +546,7 @@ function renderAdCampaignsTable(adCampaigns, posts, history) {
       await fetch('/api/ad-campaigns', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...campaign, followerGrowth: n })
+        body: JSON.stringify({ ...campaign, [field]: n })
       });
       await refresh();
     });
@@ -550,7 +564,7 @@ function setupAdSortableHeaders() {
       } else {
         state.adSort = { field, dir: 'desc' };
       }
-      if (state.data) renderAdCampaignsTable(state.data.adCampaigns || [], state.data.posts, state.data.history);
+      if (state.data) renderAdCampaignsTable(state.data.adCampaigns || [], state.data.posts);
     });
   });
 }
@@ -571,8 +585,8 @@ function populateAdPostSelect(posts) {
 
 function renderAdsTab(data) {
   populateAdPostSelect(data.posts);
-  renderAdsSummary(data.adCampaigns || [], data.posts, data.history);
-  renderAdCampaignsTable(data.adCampaigns || [], data.posts, data.history);
+  renderAdsSummary(data.adCampaigns || []);
+  renderAdCampaignsTable(data.adCampaigns || [], data.posts);
 }
 
 function setupAdCampaignForm() {
@@ -589,14 +603,25 @@ function setupAdCampaignForm() {
     const startDate = document.getElementById('adStartDate').value;
     const endDate = document.getElementById('adEndDate').value;
     const spend = spendInput.value.replace(/[^0-9]/g, '');
-    const followerGrowth = document.getElementById('adFollowerGrowth').value;
     const note = document.getElementById('adNote').value;
-    if (!postId || !startDate || !endDate || !spend || followerGrowth === '') return;
+    const metricInputIds = {
+      views: 'adViews',
+      reach: 'adReach',
+      likes: 'adLikes',
+      saved: 'adSaved',
+      shares: 'adShares',
+      followerGrowth: 'adFollowerGrowth',
+      profileVisits: 'adProfileVisits'
+    };
+    const metrics = {};
+    for (const [field, inputId] of Object.entries(metricInputIds)) metrics[field] = document.getElementById(inputId).value;
+
+    if (!postId || !startDate || !endDate || !spend || Object.values(metrics).some((v) => v === '')) return;
 
     await fetch('/api/ad-campaigns', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ postId, startDate, endDate, spend, followerGrowth, note })
+      body: JSON.stringify({ postId, startDate, endDate, spend, note, ...metrics })
     });
     e.target.reset();
     await refresh();
@@ -770,7 +795,6 @@ function openPostModal(postId) {
   const body = document.getElementById('postModalBody');
   const er = engagementRate(post);
   const sr = saveRate(post);
-  const relatedAdCampaigns = (state.data.adCampaigns || []).filter((c) => c.postId === post.id);
 
   body.innerHTML = `
   <div class="modal-layout">
@@ -839,28 +863,6 @@ function openPostModal(postId) {
         <button type="button" id="postOverrideSave" class="btn-primary">저장</button>
       </div>
     </div>
-
-    ${
-      relatedAdCampaigns.length
-        ? `
-    <div class="post-override-section">
-      <div class="post-override-title">광고 집행 팔로워 증가</div>
-      <div class="post-override-desc">이 게시물에 연결된 광고 기간별로, 인스타그램 앱 인사이트 &gt; 광고 탭에서 확인한 팔로우 수를 입력하세요.</div>
-      ${relatedAdCampaigns
-        .map(
-          (c) => `
-      <div class="post-override-field">
-        <label>${c.startDate} ~ ${c.endDate}${c.note ? ' · ' + escapeHtml(c.note) : ''}</label>
-        <input type="number" min="0" class="ad-follower-growth-input" data-ad-id="${c.id}" value="${c.followerGrowth ?? ''}" placeholder="예: 64">
-      </div>`
-        )
-        .join('')}
-      <div class="post-override-actions">
-        <button type="button" id="adFollowerGrowthSaveAll" class="btn-primary">저장</button>
-      </div>
-    </div>`
-        : ''
-    }
     </div>
   </div>
   `;
@@ -916,24 +918,6 @@ function openPostModal(postId) {
     });
   }
 
-  const adFollowerGrowthSaveAll = document.getElementById('adFollowerGrowthSaveAll');
-  if (adFollowerGrowthSaveAll) {
-    adFollowerGrowthSaveAll.addEventListener('click', async () => {
-      const inputs = [...document.querySelectorAll('.ad-follower-growth-input')];
-      for (const input of inputs) {
-        if (input.value === '') continue;
-        const campaign = relatedAdCampaigns.find((c) => c.id === input.dataset.adId);
-        if (!campaign) continue;
-        await fetch('/api/ad-campaigns', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...campaign, followerGrowth: Number(input.value) })
-        });
-      }
-      await refresh();
-      openPostModal(post.id);
-    });
-  }
 }
 
 function closePostModal() {

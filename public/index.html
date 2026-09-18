@@ -155,9 +155,34 @@
             <label for="adSpend">광고비 (원)</label>
             <input type="text" inputmode="numeric" id="adSpend" placeholder="예: 150,000" required>
           </div>
+          <div class="ad-form-field-divider info-hint" data-tooltip="인스타그램 앱 인사이트 > 광고 탭에서 확인한 값을 그대로 입력하세요 (전체 탭이 아니라 광고 탭 기준)">아래는 전부 인스타그램 앱 인사이트 &gt; 광고 탭 기준</div>
           <div class="ad-form-field">
-            <label for="adFollowerGrowth" class="info-hint" data-tooltip="인스타그램 앱 인사이트 > 광고 탭 > 프로필 활동 > 팔로우 수치를 입력하세요">팔로워 증가(광고 기여)</label>
-            <input type="number" min="0" id="adFollowerGrowth" placeholder="예: 64" required>
+            <label for="adViews">조회수</label>
+            <input type="number" min="0" id="adViews" placeholder="예: 84000" required>
+          </div>
+          <div class="ad-form-field">
+            <label for="adReach">도달</label>
+            <input type="number" min="0" id="adReach" placeholder="예: 51000" required>
+          </div>
+          <div class="ad-form-field">
+            <label for="adLikes">좋아요 및 공감</label>
+            <input type="number" min="0" id="adLikes" placeholder="예: 134" required>
+          </div>
+          <div class="ad-form-field">
+            <label for="adSaved">저장</label>
+            <input type="number" min="0" id="adSaved" placeholder="예: 290" required>
+          </div>
+          <div class="ad-form-field">
+            <label for="adShares">공유</label>
+            <input type="number" min="0" id="adShares" placeholder="예: 173" required>
+          </div>
+          <div class="ad-form-field">
+            <label for="adFollowerGrowth">팔로우</label>
+            <input type="number" min="0" id="adFollowerGrowth" placeholder="예: 155" required>
+          </div>
+          <div class="ad-form-field">
+            <label for="adProfileVisits">프로필 방문</label>
+            <input type="number" min="0" id="adProfileVisits" placeholder="예: 4763" required>
           </div>
           <div class="ad-form-field ad-form-field-wide">
             <label for="adNote">메모 (선택)</label>
@@ -169,7 +194,7 @@
 
       <section class="panel">
         <h2>광고 집행 내역</h2>
-        <div class="panel-desc">도달·참여는 광고 효과만 분리된 값이 아니라 해당 게시물/기간의 전체 수치예요. 팔로워 증가는 인스타그램 앱 인사이트 &gt; 광고 탭에서 확인한 광고 기여분을 직접 입력한 값이에요.</div>
+        <div class="panel-desc">모든 지표는 인스타그램 앱 인사이트 &gt; 광고 탭에서 확인한, 광고에만 귀속된 값이에요. 게시물 자체의(오가닉+유료 합산) 수치와는 완전히 별개예요.</div>
         <div class="table-wrap">
           <table id="adCampaignsTable">
             <thead>
@@ -181,15 +206,14 @@
                 <th data-ad-sort="spend">광고비 <span class="sort-arrow"></span></th>
                 <th data-ad-sort="views">조회수 <span class="sort-arrow"></span></th>
                 <th data-ad-sort="reach">도달 <span class="sort-arrow"></span></th>
-                <th data-ad-sort="likes">좋아요 <span class="sort-arrow"></span></th>
-                <th data-ad-sort="comments">댓글 <span class="sort-arrow"></span></th>
+                <th data-ad-sort="likes">좋아요 및 공감 <span class="sort-arrow"></span></th>
                 <th data-ad-sort="saved">저장 <span class="sort-arrow"></span></th>
                 <th data-ad-sort="shares">공유 <span class="sort-arrow"></span></th>
-                <th data-ad-sort="reposts">리포스트 <span class="sort-arrow"></span></th>
                 <th data-ad-sort="rate">참여율 <span class="sort-arrow"></span></th>
                 <th data-ad-sort="cpm"><span class="info-hint" data-tooltip="CPM(Cost Per Mille): 도달 1,000회당 광고비">CPM</span> <span class="sort-arrow"></span></th>
                 <th data-ad-sort="cpe">참여당 비용 <span class="sort-arrow"></span></th>
-                <th data-ad-sort="followerGrowth">팔로워 증가 <span class="sort-arrow"></span></th>
+                <th data-ad-sort="profileVisits">프로필 방문 <span class="sort-arrow"></span></th>
+                <th data-ad-sort="followerGrowth">팔로우 <span class="sort-arrow"></span></th>
                 <th data-ad-sort="costPerFollower">팔로워당 비용 <span class="sort-arrow"></span></th>
                 <th></th>
               </tr>
