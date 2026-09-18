@@ -1098,7 +1098,6 @@ function renderAll(data) {
     notesByPeriodFor('reach'),
     makePointClickHandler('reach', '도달', 'reach')
   );
-  renderMediaTypeChart(data.posts);
   renderCategoryChart(data.posts, (category) => {
     state.categoryEngagementFilter = state.categoryEngagementFilter === category ? null : category;
     renderCategoryEngagementPostList(data.posts, state.categoryEngagementFilter);
@@ -1391,7 +1390,6 @@ function activateTab(tab) {
       followerChartInstance,
       trendChartInstances.views,
       trendChartInstances.reach,
-      mediaTypeChartInstance,
       categoryChartInstance,
       ageChartInstance
     ].forEach((chart) => chart && chart.resize());
