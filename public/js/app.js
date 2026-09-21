@@ -547,6 +547,7 @@ const AD_RANK_FIELDS = [
   { field: 'rate', lower: false },
   { field: 'profileVisitRate', lower: false },
   { field: 'followConversionRate', lower: false },
+  { field: 'costPerFollower', lower: true },
 ];
 
 // 지표별로 { 캠페인 id -> 순위 } 계산. 값이 없는 캠페인은 순위에서 제외, 동점은 같은 순위.
@@ -615,7 +616,7 @@ function renderAdCampaignsTable(adCampaigns, posts) {
         <td class="ad-key">${pctText(m.profileVisitRate)}${rankBadge(ranks, c.id, 'profileVisitRate')}</td>
         ${adMetricCellHtml(c, 'followerGrowth')}
         <td class="ad-key">${pctText(m.followConversionRate)}${rankBadge(ranks, c.id, 'followConversionRate')}</td>
-        <td class="ad-key">${wonText(m.costPerFollower)}</td>
+        <td class="ad-key">${wonText(m.costPerFollower)}${rankBadge(ranks, c.id, 'costPerFollower')}</td>
         <td><button class="ad-delete-btn" data-ad-id="${c.id}">삭제</button></td>
       </tr>`;
     })
