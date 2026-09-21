@@ -145,9 +145,9 @@ router.post('/posts/:id/tag', (req, res) => {
 // 오가닉 몫만 주기 때문에, 광고를 태운 게시물은 인스타그램 앱에서 보이는 진짜 합산 값을
 // 여기로 입력하면 이후 대시보드 전체에 그 값이 반영된다.
 router.post('/post-overrides', (req, res) => {
-  const { postId, reach, views, like_count, comments_count, saved, shares, reposts } = req.body || {};
+  const { postId, reach, views, like_count, comments_count, saved, shares, reposts, profile_visits, follows } = req.body || {};
   if (!postId) return res.status(400).json({ error: 'postId가 필요해요.' });
-  const overrides = store.savePostOverride(postId, { reach, views, like_count, comments_count, saved, shares, reposts });
+  const overrides = store.savePostOverride(postId, { reach, views, like_count, comments_count, saved, shares, reposts, profile_visits, follows });
   res.json({ postOverrides: overrides });
 });
 
@@ -191,6 +191,13 @@ router.post('/manual-posts', (req, res) => {
   for (const key of numericFields) {
     const n = Number(req.body?.[key]);
     record[key] = Number.isFinite(n) ? n : 0;
+  }
+
+  // 프로필 방문/팔로우는 모르면 비워둘 수 있어서 빈 값은 null(표에서 "-")로 저장한다.
+  for (const key of ['profile_visits', 'follows']) {
+    const raw = req.body?.[key];
+    const n = raw === '' || raw == null ? NaN : Number(raw);
+    record[key] = Number.isFinite(n) ? n : null;
   }
 
   const saved = store.saveManualPost(record);

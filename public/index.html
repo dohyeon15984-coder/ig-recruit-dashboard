@@ -272,22 +272,22 @@
           </div>
           <span id="postsMeta" class="posts-meta"></span>
         </div>
-        <div class="panel-desc">게시물의 오가닉+유료 합산 수치예요. 표는 아래 순서대로 왼쪽에서 오른쪽으로 읽어요. 색이 들어간 칸이 핵심 지표예요.</div>
+        <div class="panel-desc">게시물의 오가닉+유료 합산 수치예요. 표는 아래 순서대로 왼쪽에서 오른쪽으로 읽어요. 색이 들어간 칸이 핵심 지표이고, 그 옆의 순위는 전체 게시물끼리 비교한 결과예요(높을수록 상위). 프로필 방문·팔로우는 릴스가 API로 제공되지 않아 "-"로 보이고, 게시물을 눌러 직접 입력할 수 있어요.</div>
         <div class="ad-flow" aria-label="전체 게시물 분석 순서">
-          <span class="ad-flow-step">① 도달</span><span class="ad-flow-arrow">→</span>
+          <span class="ad-flow-step">① 노출</span><span class="ad-flow-arrow">→</span>
           <span class="ad-flow-step">② 콘텐츠 반응</span><span class="ad-flow-arrow">→</span>
-          <span class="ad-flow-step">③ 확산</span><span class="ad-flow-arrow">→</span>
-          <span class="ad-flow-step">④ 콘텐츠 효율</span>
+          <span class="ad-flow-step">③ 프로필 유입</span><span class="ad-flow-arrow">→</span>
+          <span class="ad-flow-step">④ 팔로우 전환</span>
         </div>
         <div class="table-wrap">
           <table id="postsTable">
             <thead>
               <tr class="ad-stage-row">
                 <th colspan="6"></th>
-                <th colspan="2" class="ad-stage-start ad-stage-head">① 도달</th>
-                <th colspan="3" class="ad-stage-start ad-stage-head">② 콘텐츠 반응</th>
-                <th colspan="2" class="ad-stage-start ad-stage-head">③ 확산</th>
-                <th class="ad-stage-start ad-stage-head">④ 효율</th>
+                <th colspan="2" class="ad-stage-start ad-stage-head">① 노출</th>
+                <th colspan="6" class="ad-stage-start ad-stage-head">② 콘텐츠 반응</th>
+                <th colspan="2" class="ad-stage-start ad-stage-head">③ 프로필 유입</th>
+                <th colspan="2" class="ad-stage-start ad-stage-head">④ 팔로우 전환</th>
               </tr>
               <tr>
                 <th>#</th>
@@ -307,9 +307,13 @@
                 <th data-sort="like_count" class="ad-stage-start">좋아요 <span class="sort-arrow"></span></th>
                 <th data-sort="comments_count">댓글 <span class="sort-arrow"></span></th>
                 <th data-sort="saved">저장 <span class="sort-arrow"></span></th>
-                <th data-sort="shares" class="ad-stage-start">공유 <span class="sort-arrow"></span></th>
+                <th data-sort="shares">공유 <span class="sort-arrow"></span></th>
                 <th data-sort="reposts">리포스트 <span class="sort-arrow"></span></th>
-                <th data-sort="engagement" class="ad-stage-start ad-key"><span class="info-hint" data-tooltip="참여율 = (좋아요 + 댓글 + 저장 + 공유 + 리포스트) ÷ 도달">참여율</span> <span class="sort-arrow"></span></th>
+                <th data-sort="engagement" class="ad-key"><span class="info-hint" data-tooltip="참여율 = (좋아요 + 댓글 + 저장 + 공유 + 리포스트) ÷ 도달 · 높을수록 좋아요">참여율</span> <span class="sort-arrow"></span></th>
+                <th data-sort="profile_visits" class="ad-stage-start">프로필 방문 <span class="sort-arrow"></span></th>
+                <th data-sort="profileVisitRate" class="ad-key"><span class="info-hint" data-tooltip="프로필 방문률 = 프로필 방문 ÷ 도달 · 높을수록 좋아요">프로필 방문률</span> <span class="sort-arrow"></span></th>
+                <th data-sort="follows" class="ad-stage-start">팔로우 <span class="sort-arrow"></span></th>
+                <th data-sort="followConversionRate" class="ad-key"><span class="info-hint" data-tooltip="팔로우 전환율 = 팔로우 ÷ 프로필 방문 · 높을수록 좋아요">팔로우 전환율</span> <span class="sort-arrow"></span></th>
               </tr>
             </thead>
             <tbody id="postsTableBody"></tbody>
@@ -397,6 +401,14 @@
       <div class="ad-form-field">
         <label for="mpReposts">리포스트</label>
         <input type="number" min="0" id="mpReposts" value="0">
+      </div>
+      <div class="ad-form-field">
+        <label for="mpProfileVisits">프로필 방문 (모르면 비워두기)</label>
+        <input type="number" min="0" id="mpProfileVisits" placeholder="-">
+      </div>
+      <div class="ad-form-field">
+        <label for="mpFollows">팔로우 (모르면 비워두기)</label>
+        <input type="number" min="0" id="mpFollows" placeholder="-">
       </div>
       <div class="ad-form-field">
         <label for="mpReach">도달</label>

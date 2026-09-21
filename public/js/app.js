@@ -382,12 +382,38 @@ function renderInsights(insights) {
     .join('');
 }
 
+// 전체 게시물 표의 파생 지표. 계산할 수 없으면(릴스는 프로필 방문/팔로우 데이터가 없음) null.
+const POST_DERIVED_METRICS = {
+  engagement: (p) => (p.reach || p.views ? engagementRate(p) : null),
+  profileVisitRate: (p) => (p.profile_visits != null && p.reach ? p.profile_visits / p.reach : null),
+  followConversionRate: (p) => (p.follows != null && p.profile_visits ? p.follows / p.profile_visits : null)
+};
+
+function postMetricValue(post, field) {
+  return field in POST_DERIVED_METRICS ? POST_DERIVED_METRICS[field](post) : post[field];
+}
+
+// 핵심 지표별 순위(높을수록 상위) 계산. 값이 없는 게시물은 순위에서 제외, 동점은 같은 순위.
+function computePostRanks(posts) {
+  const ranks = {};
+  for (const field of Object.keys(POST_DERIVED_METRICS)) {
+    const valued = posts.map((p) => ({ id: p.id, v: POST_DERIVED_METRICS[field](p) })).filter((x) => x.v != null);
+    ranks[field] = { byId: new Map(valued.map(({ id, v }) => [id, valued.filter((o) => o.v > v).length + 1])) };
+  }
+  return ranks;
+}
+
 function sortPosts(posts) {
   const { field, dir } = state.sort;
   const mult = dir === 'asc' ? 1 : -1;
   return [...posts].sort((a, b) => {
-    let av = field === 'engagement' ? engagementRate(a) : a[field];
-    let bv = field === 'engagement' ? engagementRate(b) : b[field];
+    let av = postMetricValue(a, field);
+    let bv = postMetricValue(b, field);
+    if (av == null || bv == null) {
+      // 값이 없는 게시물(프로필 방문 등 데이터 없음)은 정렬 방향과 무관하게 맨 아래로
+      if (av == null && bv == null) return 0;
+      return av == null ? 1 : -1;
+    }
     if (field === 'timestamp') {
       av = new Date(av).getTime();
       bv = new Date(bv).getTime();
@@ -529,6 +555,7 @@ const AD_METRIC_LABELS = {
 const AD_STAGE_START_FIELDS = new Set(['views', 'likes', 'profileVisits', 'followerGrowth']);
 
 const pctText = (v) => (v != null ? (v * 100).toFixed(1) + '%' : '-');
+const countText = (v) => (v != null ? Number(v).toLocaleString() : '-');
 const wonText = (v) => (v != null ? Math.round(v).toLocaleString() + '원' : '-');
 
 function adMetricCellHtml(campaign, field) {
@@ -826,6 +853,7 @@ function renderPostsTable(data) {
     state.postsMonthFilter === 'all' ? data.posts : data.posts.filter((p) => p.timestamp.slice(0, 7) === state.postsMonthFilter);
   const categoryFiltered = filterPostsByCategory(monthFiltered, state.postsCategoryFilter);
   const sorted = sortPosts(categoryFiltered);
+  const ranks = computePostRanks(data.posts);
   updateSortArrows();
 
   const meta = document.getElementById('postsMeta');
@@ -865,9 +893,13 @@ function renderPostsTable(data) {
         <td class="ad-stage-start">${(p.like_count || 0).toLocaleString()}</td>
         <td>${(p.comments_count || 0).toLocaleString()}</td>
         <td>${(p.saved || 0).toLocaleString()}</td>
-        <td class="ad-stage-start">${(p.shares || 0).toLocaleString()}</td>
+        <td>${(p.shares || 0).toLocaleString()}</td>
         <td>${(p.reposts || 0).toLocaleString()}</td>
-        <td class="ad-stage-start ad-key">${(engagementRate(p) * 100).toFixed(1)}%</td>
+        <td class="ad-key">${pctText(POST_DERIVED_METRICS.engagement(p))}${rankBadge(ranks, p.id, 'engagement')}</td>
+        <td class="ad-stage-start">${countText(p.profile_visits)}</td>
+        <td class="ad-key">${pctText(POST_DERIVED_METRICS.profileVisitRate(p))}${rankBadge(ranks, p.id, 'profileVisitRate')}</td>
+        <td class="ad-stage-start">${countText(p.follows)}</td>
+        <td class="ad-key">${pctText(POST_DERIVED_METRICS.followConversionRate(p))}${rankBadge(ranks, p.id, 'followConversionRate')}</td>
       </tr>`;
     })
     .join('');
@@ -944,6 +976,8 @@ function openPostModal(postId) {
       <div class="modal-stat"><div class="modal-stat-label">저장</div><div class="modal-stat-value">${(post.saved || 0).toLocaleString()}</div></div>
       <div class="modal-stat"><div class="modal-stat-label">공유</div><div class="modal-stat-value">${(post.shares || 0).toLocaleString()}</div></div>
       <div class="modal-stat"><div class="modal-stat-label">리포스트</div><div class="modal-stat-value">${(post.reposts || 0).toLocaleString()}</div></div>
+      <div class="modal-stat"><div class="modal-stat-label">프로필 방문</div><div class="modal-stat-value">${countText(post.profile_visits)}</div></div>
+      <div class="modal-stat"><div class="modal-stat-label">팔로우</div><div class="modal-stat-value">${countText(post.follows)}</div></div>
     </div>
     <div class="modal-note">참여율은 도달한 사람 중 얼마나 많은 반응(좋아요·댓글·저장·공유·리포스트)을 이끌어냈는지를 보여줘요. 숫자가 높을수록 도달 대비 콘텐츠 반응이 좋았다는 뜻이에요.</div>
     ${post.permalink && post.permalink !== '#' ? `<a class="modal-link" href="${post.permalink}" target="_blank" rel="noopener">인스타그램에서 보기 →</a>` : ''}
@@ -979,6 +1013,8 @@ function openPostModal(postId) {
         <div class="post-override-field"><label>저장</label><input type="number" min="0" id="ovSaved" value="${post.saved || 0}"></div>
         <div class="post-override-field"><label>공유</label><input type="number" min="0" id="ovShares" value="${post.shares || 0}"></div>
         <div class="post-override-field"><label>리포스트</label><input type="number" min="0" id="ovReposts" value="${post.reposts || 0}"></div>
+        <div class="post-override-field"><label>프로필 방문</label><input type="number" min="0" id="ovProfileVisits" value="${post.profile_visits ?? ''}" placeholder="-"></div>
+        <div class="post-override-field"><label>팔로우</label><input type="number" min="0" id="ovFollows" value="${post.follows ?? ''}" placeholder="-"></div>
       </div>
       <div class="post-override-actions">
         ${post.has_override ? '<button type="button" id="postOverrideReset" class="btn-ghost">초기화(원래 값으로)</button>' : ''}
@@ -1024,7 +1060,9 @@ function openPostModal(postId) {
         comments_count: document.getElementById('ovComments').value,
         saved: document.getElementById('ovSaved').value,
         shares: document.getElementById('ovShares').value,
-        reposts: document.getElementById('ovReposts').value
+        reposts: document.getElementById('ovReposts').value,
+        profile_visits: document.getElementById('ovProfileVisits').value,
+        follows: document.getElementById('ovFollows').value
       })
     });
     await refresh();
@@ -1429,6 +1467,8 @@ function setupManualPostModal() {
         saved: document.getElementById('mpSaved').value,
         shares: document.getElementById('mpShares').value,
         reposts: document.getElementById('mpReposts').value,
+        profile_visits: document.getElementById('mpProfileVisits').value,
+        follows: document.getElementById('mpFollows').value,
         reach: document.getElementById('mpReach').value,
         views: document.getElementById('mpViews').value,
         permalink: document.getElementById('mpPermalink').value,
