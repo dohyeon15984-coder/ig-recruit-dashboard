@@ -386,8 +386,8 @@ function sortPosts(posts) {
   const { field, dir } = state.sort;
   const mult = dir === 'asc' ? 1 : -1;
   return [...posts].sort((a, b) => {
-    let av = a[field];
-    let bv = b[field];
+    let av = field === 'engagement' ? engagementRate(a) : a[field];
+    let bv = field === 'engagement' ? engagementRate(b) : b[field];
     if (field === 'timestamp') {
       av = new Date(av).getTime();
       bv = new Date(bv).getTime();
@@ -860,12 +860,14 @@ function renderPostsTable(data) {
             ${options}
           </select>
         </td>
-        <td>${(p.like_count || 0).toLocaleString()}</td>
+        <td class="ad-stage-start">${(p.views || 0).toLocaleString()}</td>
+        <td>${(p.reach || 0).toLocaleString()}</td>
+        <td class="ad-stage-start">${(p.like_count || 0).toLocaleString()}</td>
         <td>${(p.comments_count || 0).toLocaleString()}</td>
         <td>${(p.saved || 0).toLocaleString()}</td>
-        <td>${(p.shares || 0).toLocaleString()}</td>
+        <td class="ad-stage-start">${(p.shares || 0).toLocaleString()}</td>
         <td>${(p.reposts || 0).toLocaleString()}</td>
-        <td>${(p.reach || 0).toLocaleString()}</td>
+        <td class="ad-stage-start ad-key">${(engagementRate(p) * 100).toFixed(1)}%</td>
       </tr>`;
     })
     .join('');
