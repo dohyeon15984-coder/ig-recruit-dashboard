@@ -1535,6 +1535,34 @@ function setupTrendGranularityControls() {
   });
 }
 
+// 가로로 넓은 표는 스크롤바가 표 맨 아래에만 있어서 불편하다. 표 위에도 같은 스크롤바를 하나 더
+// 만들어 서로 동기화한다. (표가 화면보다 좁으면 자동으로 숨긴다)
+function setupTopScrollbar(wrap) {
+  if (!wrap || wrap.dataset.topScroll) return;
+  wrap.dataset.topScroll = '1';
+  const bar = document.createElement('div');
+  bar.className = 'table-scroll-top';
+  const inner = document.createElement('div');
+  bar.appendChild(inner);
+  wrap.parentNode.insertBefore(bar, wrap);
+
+  bar.addEventListener('scroll', () => {
+    if (wrap.scrollLeft !== bar.scrollLeft) wrap.scrollLeft = bar.scrollLeft;
+  });
+  wrap.addEventListener('scroll', () => {
+    if (bar.scrollLeft !== wrap.scrollLeft) bar.scrollLeft = wrap.scrollLeft;
+  });
+
+  const update = () => {
+    inner.style.width = wrap.scrollWidth + 'px';
+    bar.style.display = wrap.scrollWidth > wrap.clientWidth + 1 ? 'block' : 'none';
+  };
+  const observer = new ResizeObserver(update);
+  observer.observe(wrap);
+  if (wrap.firstElementChild) observer.observe(wrap.firstElementChild);
+  update();
+}
+
 async function init() {
   setupSortableHeaders();
   setupModal();
@@ -1544,6 +1572,8 @@ async function init() {
   setupTabs();
   setupTrendGranularityControls();
   setupAdCampaignForm();
+  setupTopScrollbar(document.getElementById('adCampaignsTable').closest('.table-wrap'));
+  setupTopScrollbar(document.getElementById('postsTable').closest('.table-wrap'));
   setupAdSortableHeaders();
   await refresh();
 

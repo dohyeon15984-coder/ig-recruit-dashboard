@@ -313,12 +313,12 @@ h2 { letter-spacing: -0.01em; }
 
 .panel-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   align-items: start;
   gap: 16px;
 }
 
-.panel-half { padding: 22px; }
+.panel-half { padding: 22px; min-width: 0; }
 
 @media (max-width: 860px) {
   .app-shell { flex-direction: column; }
@@ -1047,3 +1047,7 @@ select.tag-select {
 #adCampaignsTable .ad-stage-row th:nth-child(2) { background: var(--card-bg); }
 #adCampaignsTable tbody tr:hover td:nth-child(1),
 #adCampaignsTable tbody tr:hover td:nth-child(2) { background: var(--surface-alt); }
+
+/* 표 위쪽 가로 스크롤바 (표 아래 스크롤바와 동기화) */
+.table-scroll-top { overflow-x: auto; overflow-y: hidden; height: 14px; margin-bottom: 4px; display: none; }
+.table-scroll-top > div { height: 1px; }
