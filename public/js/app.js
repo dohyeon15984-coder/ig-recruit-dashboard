@@ -541,6 +541,36 @@ function adMetricCellHtml(campaign, field) {
   return `<td class="ad-metric-cell info-hint${stageClass}" data-ad-id="${campaign.id}" data-field="${field}" data-tooltip="인스타그램 앱 인사이트 > 광고 탭에서 확인한 ${AD_METRIC_LABELS[field]} 값이에요. 클릭하면 수정할 수 있어요">${text}</td>`;
 }
 
+// 순위를 표시하는 핵심 지표. lower=true면 값이 낮을수록 좋은 지표(CPM)라 낮은 쪽이 1위.
+const AD_RANK_FIELDS = [
+  { field: 'cpm', lower: true },
+  { field: 'rate', lower: false },
+  { field: 'profileVisitRate', lower: false },
+  { field: 'followConversionRate', lower: false },
+];
+
+// 지표별로 { 캠페인 id -> 순위 } 계산. 값이 없는 캠페인은 순위에서 제외, 동점은 같은 순위.
+function computeAdRanks(adCampaigns) {
+  const metricsById = adCampaigns.map((c) => ({ id: c.id, m: computeAdMetrics(c) }));
+  const ranks = {};
+  for (const { field, lower } of AD_RANK_FIELDS) {
+    const valued = metricsById.filter(({ m }) => m[field] != null);
+    ranks[field] = { total: valued.length, byId: new Map() };
+    for (const { id, m } of valued) {
+      const better = valued.filter(({ m: o }) => (lower ? o[field] < m[field] : o[field] > m[field])).length;
+      ranks[field].byId.set(id, better + 1);
+    }
+  }
+  return ranks;
+}
+
+function rankBadge(ranks, id, field) {
+  const r = ranks[field];
+  const rank = r.byId.get(id);
+  if (rank == null) return '';
+  return ` <span class="ad-rank${rank === 1 ? ' ad-rank-top' : ''}">${rank}위</span>`;
+}
+
 function renderAdCampaignsTable(adCampaigns, posts) {
   const tbody = document.getElementById('adCampaignsTableBody');
   updateAdSortArrows();
@@ -551,6 +581,7 @@ function renderAdCampaignsTable(adCampaigns, posts) {
 
   const postsById = new Map(posts.map((p) => [p.id, p]));
   const sorted = sortAdCampaigns(adCampaigns);
+  const ranks = computeAdRanks(adCampaigns);
 
   tbody.innerHTML = sorted
     .map(({ c, m }, index) => {
@@ -574,16 +605,16 @@ function renderAdCampaignsTable(adCampaigns, posts) {
         <td>${Math.round(Number(c.spend)).toLocaleString()}원</td>
         ${adMetricCellHtml(c, 'views')}
         ${adMetricCellHtml(c, 'reach')}
-        <td class="ad-key">${wonText(m.cpm)}</td>
+        <td class="ad-key">${wonText(m.cpm)}${rankBadge(ranks, c.id, 'cpm')}</td>
         ${adMetricCellHtml(c, 'likes')}
         ${adMetricCellHtml(c, 'saved')}
         ${adMetricCellHtml(c, 'shares')}
-        <td class="ad-key">${pctText(m.rate)}</td>
+        <td class="ad-key">${pctText(m.rate)}${rankBadge(ranks, c.id, 'rate')}</td>
         <td>${wonText(m.cpe)}</td>
         ${adMetricCellHtml(c, 'profileVisits')}
-        <td class="ad-key">${pctText(m.profileVisitRate)}</td>
+        <td class="ad-key">${pctText(m.profileVisitRate)}${rankBadge(ranks, c.id, 'profileVisitRate')}</td>
         ${adMetricCellHtml(c, 'followerGrowth')}
-        <td class="ad-key">${pctText(m.followConversionRate)}</td>
+        <td class="ad-key">${pctText(m.followConversionRate)}${rankBadge(ranks, c.id, 'followConversionRate')}</td>
         <td class="ad-key">${wonText(m.costPerFollower)}</td>
         <td><button class="ad-delete-btn" data-ad-id="${c.id}">삭제</button></td>
       </tr>`;

@@ -1008,3 +1008,7 @@ select.tag-select {
 .ad-flow-arrow { color: var(--text-faint); font-weight: 800; }
 
 #adCampaignsTable td.caption-cell { min-width: 220px; }
+
+/* 핵심 지표 옆 순위 */
+.ad-rank { margin-left: 4px; font-size: 10.5px; font-weight: 700; color: var(--text-faint); }
+.ad-rank-top { color: var(--brand-teal-light); }
