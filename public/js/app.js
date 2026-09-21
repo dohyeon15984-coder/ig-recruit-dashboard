@@ -572,6 +572,9 @@ function rankBadge(ranks, id, field) {
   return ` <span class="ad-rank${rank === 1 ? ' ad-rank-top' : ''}">${rank}위</span>`;
 }
 
+// 2026-08-07 -> 26.08.07
+const shortDate = (d) => (d ? d.slice(2).replace(/-/g, '.') : '');
+
 function renderAdCampaignsTable(adCampaigns, posts) {
   const tbody = document.getElementById('adCampaignsTableBody');
   updateAdSortArrows();
@@ -601,7 +604,7 @@ function renderAdCampaignsTable(adCampaigns, posts) {
             <div>${displayLabel}</div>
           </div>
         </td>
-        <td>${c.startDate} ~ ${c.endDate}</td>
+        <td>${shortDate(c.startDate)} ~ ${shortDate(c.endDate)}</td>
         <td>${m.days}일</td>
         <td>${Math.round(Number(c.spend)).toLocaleString()}원</td>
         ${adMetricCellHtml(c, 'views')}
