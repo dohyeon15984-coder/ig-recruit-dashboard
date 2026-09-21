@@ -1012,3 +1012,38 @@ select.tag-select {
 /* 핵심 지표 옆 순위 */
 .ad-rank { margin-left: 4px; font-size: 10.5px; font-weight: 700; color: var(--text-faint); }
 .ad-rank-top { color: var(--brand-teal-light); }
+
+/* 전체 게시물 표: 가로 스크롤해도 순번(#)과 썸네일 열은 왼쪽에 고정 */
+#postsTable th:nth-child(1),
+#postsTable td:nth-child(1) { position: sticky; left: 0; z-index: 2; width: 44px; min-width: 44px; max-width: 44px; background: var(--card-bg); }
+#postsTable th:nth-child(2),
+#postsTable td:nth-child(2) {
+  position: sticky;
+  left: 44px;
+  z-index: 2;
+  width: 62px;
+  min-width: 62px;
+  max-width: 62px;
+  background: var(--card-bg);
+  box-shadow: 1px 0 0 var(--border), 4px 0 6px -4px rgba(16, 24, 40, 0.18);
+}
+#postsTable .ad-stage-row th:nth-child(1),
+#postsTable .ad-stage-row th:nth-child(2) { background: var(--card-bg); }
+#postsTable tbody tr:hover td:nth-child(1),
+#postsTable tbody tr:hover td:nth-child(2) { background: var(--surface-alt); }
+
+/* 광고 집행 표: 순번(#)과 게시물(썸네일+메모) 열을 왼쪽에 고정 */
+#adCampaignsTable th:nth-child(1),
+#adCampaignsTable td:nth-child(1) { position: sticky; left: 0; z-index: 2; width: 44px; min-width: 44px; max-width: 44px; background: var(--card-bg); }
+#adCampaignsTable th:nth-child(2),
+#adCampaignsTable td:nth-child(2) {
+  position: sticky;
+  left: 44px;
+  z-index: 2;
+  background: var(--card-bg);
+  box-shadow: 1px 0 0 var(--border), 4px 0 6px -4px rgba(16, 24, 40, 0.18);
+}
+#adCampaignsTable .ad-stage-row th:nth-child(1),
+#adCampaignsTable .ad-stage-row th:nth-child(2) { background: var(--card-bg); }
+#adCampaignsTable tbody tr:hover td:nth-child(1),
+#adCampaignsTable tbody tr:hover td:nth-child(2) { background: var(--surface-alt); }
