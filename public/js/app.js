@@ -433,8 +433,27 @@ function computeAdMetrics(campaign) {
   const cpm = reach ? (campaign.spend / reach) * 1000 : null;
   const cpe = engagement ? campaign.spend / engagement : null;
   const costPerFollower = followerGrowth != null && followerGrowth > 0 ? campaign.spend / followerGrowth : null;
+  // 퍼널 단계 간 전환 비율: 도달 → 프로필 방문 → 팔로우
+  const profileVisitRate = profileVisits != null && reach ? profileVisits / reach : null;
+  const followConversionRate = followerGrowth != null && profileVisits ? followerGrowth / profileVisits : null;
 
-  return { days, views, reach, likes, saved, shares, engagement, rate, cpm, cpe, followerGrowth, profileVisits, costPerFollower };
+  return {
+    days,
+    views,
+    reach,
+    likes,
+    saved,
+    shares,
+    engagement,
+    rate,
+    cpm,
+    cpe,
+    followerGrowth,
+    profileVisits,
+    costPerFollower,
+    profileVisitRate,
+    followConversionRate
+  };
 }
 
 function renderAdsSummary(adCampaigns) {
@@ -506,20 +525,27 @@ const AD_METRIC_LABELS = {
   profileVisits: '프로필 방문'
 };
 
+// 퍼널 단계(노출/콘텐츠 반응/프로필 유입/팔로우 전환)의 첫 칸에는 왼쪽 구분선을 넣는다.
+const AD_STAGE_START_FIELDS = new Set(['views', 'likes', 'profileVisits', 'followerGrowth']);
+
+const pctText = (v) => (v != null ? (v * 100).toFixed(1) + '%' : '-');
+const wonText = (v) => (v != null ? Math.round(v).toLocaleString() + '원' : '-');
+
 function adMetricCellHtml(campaign, field) {
   const value = campaign[field];
   const text =
     value != null
       ? `${Number(value).toLocaleString()}${field === 'followerGrowth' ? '명' : ''}`
       : '<span class="ad-follower-growth-missing">입력 필요</span>';
-  return `<td class="ad-metric-cell info-hint" data-ad-id="${campaign.id}" data-field="${field}" data-tooltip="인스타그램 앱 인사이트 > 광고 탭에서 확인한 ${AD_METRIC_LABELS[field]} 값이에요. 클릭하면 수정할 수 있어요">${text}</td>`;
+  const stageClass = AD_STAGE_START_FIELDS.has(field) ? ' ad-stage-start' : '';
+  return `<td class="ad-metric-cell info-hint${stageClass}" data-ad-id="${campaign.id}" data-field="${field}" data-tooltip="인스타그램 앱 인사이트 > 광고 탭에서 확인한 ${AD_METRIC_LABELS[field]} 값이에요. 클릭하면 수정할 수 있어요">${text}</td>`;
 }
 
 function renderAdCampaignsTable(adCampaigns, posts) {
   const tbody = document.getElementById('adCampaignsTableBody');
   updateAdSortArrows();
   if (!adCampaigns.length) {
-    tbody.innerHTML = '<tr><td colspan="17" class="caption-cell">아직 등록된 광고 집행 내역이 없어요. 위에서 등록해보세요.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="19" class="caption-cell">아직 등록된 광고 집행 내역이 없어요. 위에서 등록해보세요.</td></tr>';
     return;
   }
 
@@ -548,15 +574,17 @@ function renderAdCampaignsTable(adCampaigns, posts) {
         <td>${Math.round(Number(c.spend)).toLocaleString()}원</td>
         ${adMetricCellHtml(c, 'views')}
         ${adMetricCellHtml(c, 'reach')}
+        <td class="ad-key">${wonText(m.cpm)}</td>
         ${adMetricCellHtml(c, 'likes')}
         ${adMetricCellHtml(c, 'saved')}
         ${adMetricCellHtml(c, 'shares')}
-        <td>${m.rate != null ? (m.rate * 100).toFixed(1) + '%' : '-'}</td>
-        <td>${m.cpm != null ? Math.round(m.cpm).toLocaleString() + '원' : '-'}</td>
-        <td>${m.cpe != null ? Math.round(m.cpe).toLocaleString() + '원' : '-'}</td>
+        <td class="ad-key">${pctText(m.rate)}</td>
+        <td>${wonText(m.cpe)}</td>
         ${adMetricCellHtml(c, 'profileVisits')}
+        <td class="ad-key">${pctText(m.profileVisitRate)}</td>
         ${adMetricCellHtml(c, 'followerGrowth')}
-        <td>${m.costPerFollower != null ? Math.round(m.costPerFollower).toLocaleString() + '원' : '-'}</td>
+        <td class="ad-key">${pctText(m.followConversionRate)}</td>
+        <td class="ad-key">${wonText(m.costPerFollower)}</td>
         <td><button class="ad-delete-btn" data-ad-id="${c.id}">삭제</button></td>
       </tr>`;
     })

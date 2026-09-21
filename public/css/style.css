@@ -278,6 +278,19 @@ h2 { letter-spacing: -0.01em; }
 #adCampaignsTable tbody tr.ad-row { cursor: pointer; }
 #adCampaignsTable tbody tr.ad-row:hover { background: var(--surface-alt); }
 
+/* 광고 성과 퍼널: 단계 헤더 + 단계 사이 구분선 */
+#adCampaignsTable .ad-stage-row th { border-bottom: none; padding-bottom: 2px; }
+#adCampaignsTable .ad-stage-head {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text);
+  background: var(--surface-alt);
+}
+#adCampaignsTable .ad-stage-start { border-left: 1px solid var(--border); }
+
+.ad-metric-cell { cursor: pointer; }
+.ad-metric-cell:hover { background: var(--surface-alt); }
 .ad-follower-growth-cell { cursor: pointer; }
 .ad-follower-growth-cell:hover { background: var(--surface-alt); }
 
@@ -966,3 +979,32 @@ select.tag-select {
   cursor: pointer;
 }
 .post-override-actions-standalone:hover { background: rgba(200, 30, 44, 0.08); }
+
+/* 광고 성과: 핵심 지표(CPM/참여율/프로필 방문률/팔로우 전환율/팔로워당 비용) 강조 */
+#adCampaignsTable th.ad-key { background: rgba(34, 164, 136, 0.12); color: var(--brand-navy); }
+#adCampaignsTable td.ad-key {
+  background: rgba(34, 164, 136, 0.12);
+  font-weight: 800;
+  color: var(--text);
+}
+
+/* 분석 순서 안내: ① → ② → ③ → ④ */
+.ad-flow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+.ad-flow-step {
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text);
+}
+.ad-flow-arrow { color: var(--text-faint); font-weight: 800; }
+
+#adCampaignsTable td.caption-cell { min-width: 220px; }

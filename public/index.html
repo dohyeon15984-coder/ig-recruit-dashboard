@@ -206,27 +206,43 @@
 
       <section class="panel">
         <h2>광고 집행 내역</h2>
-        <div class="panel-desc">모든 지표는 인스타그램 앱 인사이트 &gt; 광고 탭에서 확인한, 광고에만 귀속된 값이에요. 게시물 자체의(오가닉+유료 합산) 수치와는 완전히 별개예요.</div>
+        <div class="panel-desc">모든 지표는 인스타그램 앱 인사이트 &gt; 광고 탭에서 확인한, 광고에만 귀속된 값이에요. 게시물 자체의(오가닉+유료 합산) 수치와는 완전히 별개예요. 표는 아래 순서대로 왼쪽에서 오른쪽으로 읽어요. 색이 들어간 칸이 핵심 지표예요.</div>
+        <div class="ad-flow" aria-label="광고 성과 분석 순서">
+          <span class="ad-flow-step">① 노출</span><span class="ad-flow-arrow">→</span>
+          <span class="ad-flow-step">② 콘텐츠 반응</span><span class="ad-flow-arrow">→</span>
+          <span class="ad-flow-step">③ 프로필 유입</span><span class="ad-flow-arrow">→</span>
+          <span class="ad-flow-step">④ 팔로우 전환</span>
+        </div>
         <div class="table-wrap">
           <table id="adCampaignsTable">
             <thead>
+              <tr class="ad-stage-row">
+                <th colspan="5"></th>
+                <th colspan="3" class="ad-stage-start ad-stage-head">① 노출</th>
+                <th colspan="5" class="ad-stage-start ad-stage-head">② 콘텐츠 반응</th>
+                <th colspan="2" class="ad-stage-start ad-stage-head">③ 프로필 유입</th>
+                <th colspan="3" class="ad-stage-start ad-stage-head">④ 팔로우 전환</th>
+                <th></th>
+              </tr>
               <tr>
                 <th>#</th>
                 <th>게시물</th>
                 <th data-ad-sort="startDate">기간 <span class="sort-arrow"></span></th>
                 <th data-ad-sort="days">일수 <span class="sort-arrow"></span></th>
                 <th data-ad-sort="spend">광고비 <span class="sort-arrow"></span></th>
-                <th data-ad-sort="views">조회수 <span class="sort-arrow"></span></th>
+                <th data-ad-sort="views" class="ad-stage-start">조회수 <span class="sort-arrow"></span></th>
                 <th data-ad-sort="reach">도달 <span class="sort-arrow"></span></th>
-                <th data-ad-sort="likes">좋아요 및 공감 <span class="sort-arrow"></span></th>
+                <th data-ad-sort="cpm" class="ad-key"><span class="info-hint" data-tooltip="CPM(Cost Per Mille): 도달 1,000회당 광고비">CPM</span> <span class="sort-arrow"></span></th>
+                <th data-ad-sort="likes" class="ad-stage-start">좋아요 및 공감 <span class="sort-arrow"></span></th>
                 <th data-ad-sort="saved">저장 <span class="sort-arrow"></span></th>
                 <th data-ad-sort="shares">공유 <span class="sort-arrow"></span></th>
-                <th data-ad-sort="rate">참여율 <span class="sort-arrow"></span></th>
-                <th data-ad-sort="cpm"><span class="info-hint" data-tooltip="CPM(Cost Per Mille): 도달 1,000회당 광고비">CPM</span> <span class="sort-arrow"></span></th>
-                <th data-ad-sort="cpe">참여당 비용 <span class="sort-arrow"></span></th>
-                <th data-ad-sort="profileVisits">프로필 방문 <span class="sort-arrow"></span></th>
-                <th data-ad-sort="followerGrowth">팔로우 <span class="sort-arrow"></span></th>
-                <th data-ad-sort="costPerFollower">팔로워당 비용 <span class="sort-arrow"></span></th>
+                <th data-ad-sort="rate" class="ad-key"><span class="info-hint" data-tooltip="참여율 = (좋아요 및 공감 + 저장 + 공유) ÷ 도달">참여율</span> <span class="sort-arrow"></span></th>
+                <th data-ad-sort="cpe"><span class="info-hint" data-tooltip="참여당 비용 = 광고비 ÷ (좋아요 및 공감 + 저장 + 공유)">참여당 비용</span> <span class="sort-arrow"></span></th>
+                <th data-ad-sort="profileVisits" class="ad-stage-start">프로필 방문 <span class="sort-arrow"></span></th>
+                <th data-ad-sort="profileVisitRate" class="ad-key"><span class="info-hint" data-tooltip="프로필 방문률 = 프로필 방문 ÷ 도달">프로필 방문률</span> <span class="sort-arrow"></span></th>
+                <th data-ad-sort="followerGrowth" class="ad-stage-start">팔로우 <span class="sort-arrow"></span></th>
+                <th data-ad-sort="followConversionRate" class="ad-key"><span class="info-hint" data-tooltip="팔로우 전환율 = 팔로우 ÷ 프로필 방문">팔로우 전환율</span> <span class="sort-arrow"></span></th>
+                <th data-ad-sort="costPerFollower" class="ad-key">팔로워당 비용 <span class="sort-arrow"></span></th>
                 <th></th>
               </tr>
             </thead>
