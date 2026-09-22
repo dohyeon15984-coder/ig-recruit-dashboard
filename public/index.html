@@ -427,8 +427,9 @@
         <input type="text" id="mpPermalink" placeholder="https://www.instagram.com/p/...">
       </div>
       <div class="ad-form-field ad-form-field-wide">
-        <label for="mpThumbnail">썸네일 이미지 URL(선택)</label>
-        <input type="text" id="mpThumbnail" placeholder="https://...">
+        <label for="mpThumbnailFile">썸네일 사진(선택)</label>
+        <input type="file" id="mpThumbnailFile" accept="image/*">
+        <img id="mpThumbnailPreview" class="mp-thumbnail-preview" hidden alt="썸네일 미리보기">
       </div>
       <label class="post-collab-checkbox">
         <input type="checkbox" id="mpIsCollab">

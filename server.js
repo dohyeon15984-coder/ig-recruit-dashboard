@@ -6,7 +6,8 @@ const apiRouter = require('./routes/api');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(express.json());
+// 게시물 직접 추가 시 첨부하는 썸네일 사진이 base64로 요청 본문에 실려오므로 기본 100kb보다 넉넉하게 잡는다.
+app.use(express.json({ limit: '8mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/api', apiRouter);
 

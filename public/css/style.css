@@ -1051,3 +1051,5 @@ select.tag-select {
 /* 표 위쪽 가로 스크롤바 (표 아래 스크롤바와 동기화) */
 .table-scroll-top { overflow-x: auto; overflow-y: hidden; height: 14px; margin-bottom: 4px; display: none; }
 .table-scroll-top > div { height: 1px; }
+
+.mp-thumbnail-preview { margin-top: 8px; width: 96px; height: 96px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--border); }

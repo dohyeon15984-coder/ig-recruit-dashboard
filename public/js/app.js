@@ -1424,9 +1424,39 @@ function setupCategoryManageModal() {
   });
 }
 
+// 사용자가 고른 사진을 캔버스로 줄여서(가로 640px, JPEG) data URL로 만든다.
+// 서버에 파일 업로드/저장소를 따로 두지 않고 게시물 데이터(JSON) 안에 사진을 그대로 담아서
+// 로컬<->공유용 사이트 동기화(지금 동기화, push-remote) 때 사진도 같이 옮겨지도록 한다.
+function resizeImageToDataUrl(file, maxWidth = 640, quality = 0.82) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error);
+    reader.onload = () => {
+      img.onerror = () => reject(new Error('이미지를 읽을 수 없어요.'));
+      img.onload = () => {
+        const scale = Math.min(1, maxWidth / img.width);
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+let manualPostThumbnailDataUrl = null;
+
 function openManualPostModal() {
   const form = document.getElementById('manualPostForm');
   form.reset();
+  manualPostThumbnailDataUrl = null;
+  const preview = document.getElementById('mpThumbnailPreview');
+  preview.hidden = true;
+  preview.src = '';
   document.getElementById('mpTimestamp').value = new Date().toISOString().slice(0, 10);
 
   const categorySelect = document.getElementById('mpCategory');
@@ -1443,6 +1473,26 @@ function closeManualPostModal() {
 
 function setupManualPostModal() {
   document.getElementById('addManualPostBtn').addEventListener('click', openManualPostModal);
+
+  document.getElementById('mpThumbnailFile').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    const preview = document.getElementById('mpThumbnailPreview');
+    if (!file) {
+      manualPostThumbnailDataUrl = null;
+      preview.hidden = true;
+      return;
+    }
+    try {
+      manualPostThumbnailDataUrl = await resizeImageToDataUrl(file);
+      preview.src = manualPostThumbnailDataUrl;
+      preview.hidden = false;
+    } catch (err) {
+      alert('사진을 불러오지 못했어요: ' + err.message);
+      e.target.value = '';
+      manualPostThumbnailDataUrl = null;
+      preview.hidden = true;
+    }
+  });
   document.getElementById('manualPostModalClose').addEventListener('click', closeManualPostModal);
   document.getElementById('manualPostModal').addEventListener('click', (e) => {
     if (e.target.id === 'manualPostModal') closeManualPostModal();
@@ -1472,7 +1522,7 @@ function setupManualPostModal() {
         reach: document.getElementById('mpReach').value,
         views: document.getElementById('mpViews').value,
         permalink: document.getElementById('mpPermalink').value,
-        thumbnail_url: document.getElementById('mpThumbnail').value,
+        thumbnail_url: manualPostThumbnailDataUrl || '',
         is_collab: isCollab,
         collab_partner: isCollab ? document.getElementById('mpCollabPartner').value : ''
       })
