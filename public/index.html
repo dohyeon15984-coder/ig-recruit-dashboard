@@ -133,12 +133,12 @@
               <option value="reposts">리포스트</option>
             </select>
           </div>
-          <div class="panel-desc">높을수록 그 카테고리 게시물에 반응이 좋았다는 뜻이에요 (도달 대비 선택한 지표 비율)</div>
+          <div class="panel-desc">높을수록 그 카테고리 게시물에 반응이 좋았다는 뜻이에요 (카테고리 전체 도달 대비 전체 반응 비율 — 게시물 수가 아니라 도달로 가중해서 계산해서, 게시물 하나의 우연한 값에 과하게 흔들리지 않아요)</div>
           <div class="chart-wrap"><canvas id="categoryChart"></canvas></div>
         </div>
         <div class="panel panel-half">
           <h2>카테고리 게시물 목록</h2>
-          <div class="panel-desc">막대를 클릭하면 그 카테고리의 게시물이 여기 나타나요</div>
+          <div class="panel-desc">막대를 클릭하면 그 카테고리의 게시물이 여기 나타나요. 목록 순서는 표본(도달 수)이 적어 우연히 튄 값을 보수적으로 낮춰 매긴 순위예요(월슨 신뢰구간 하한 방식 — 자세한 설명은 ④ 전체 게시물 탭에 있어요)</div>
           <div id="categoryEngagementPostList" class="category-engagement-post-list category-engagement-post-list-standalone"></div>
         </div>
       </section>
@@ -206,12 +206,18 @@
 
       <section class="panel">
         <h2>광고 집행 내역</h2>
-        <div class="panel-desc">모든 지표는 인스타그램 앱 인사이트 &gt; 광고 탭에서 확인한, 광고에만 귀속된 값이에요. 게시물 자체의(오가닉+유료 합산) 수치와는 완전히 별개예요. 표는 아래 순서대로 왼쪽에서 오른쪽으로 읽어요. 색이 들어간 칸이 핵심 지표이고, CPM·참여율·프로필 방문률·팔로우 전환율·팔로워당 비용 옆의 순위는 등록된 광고끼리 비교한 결과예요(CPM과 팔로워당 비용은 낮을수록 상위). 참여율·방문률·전환율은 표본(도달/방문 수)이 적으면 우연히 튄 값이 1위가 되지 않도록 순위를 보수적으로 계산해요.</div>
+        <div class="panel-desc">모든 지표는 인스타그램 앱 인사이트 &gt; 광고 탭에서 확인한, 광고에만 귀속된 값이에요. 게시물 자체의(오가닉+유료 합산) 수치와는 완전히 별개예요. 표는 아래 순서대로 왼쪽에서 오른쪽으로 읽어요. 색이 들어간 칸이 핵심 지표이고, CPM·참여율·프로필 방문률·팔로우 전환율·팔로워당 비용 옆의 순위는 등록된 광고끼리 비교한 결과예요(CPM과 팔로워당 비용은 낮을수록 상위).</div>
         <div class="ad-flow" aria-label="광고 성과 분석 순서">
           <span class="ad-flow-step">① 노출</span><span class="ad-flow-arrow">→</span>
           <span class="ad-flow-step">② 콘텐츠 반응</span><span class="ad-flow-arrow">→</span>
           <span class="ad-flow-step">③ 프로필 유입</span><span class="ad-flow-arrow">→</span>
           <span class="ad-flow-step">④ 팔로우 전환</span>
+        </div>
+        <div class="method-note">
+          📊 <strong>참여율·프로필 방문률·팔로우 전환율의 순위는 어떻게 정해지나요?</strong><br>
+          화면에 보이는 %는 실제 계산값 그대로지만, 순위는 그 %가 아니라 <strong>월슨 신뢰구간 하한(Wilson lower bound)</strong>이라는 통계 방식으로 매겨요.
+          표본(도달·방문 수)이 적은 게시물은 우연히 높은 값이 나오기 쉬워서, 그런 경우 실제로는 더 낮을 가능성을 감안해 순위를 보수적으로 낮춰 계산해요.
+          예를 들어 "5명 중 1명 팔로우(20%)"보다 "500명 중 80명 팔로우(16%)"가 더 신뢰할 수 있는 결과라 더 높은 순위를 받을 수 있어요.
         </div>
         <div class="table-wrap">
           <table id="adCampaignsTable">
@@ -274,12 +280,18 @@
           </div>
           <span id="postsMeta" class="posts-meta"></span>
         </div>
-        <div class="panel-desc">게시물의 오가닉+유료 합산 수치예요. 표는 아래 순서대로 왼쪽에서 오른쪽으로 읽어요. 색이 들어간 칸이 핵심 지표이고, 그 옆의 순위는 전체 게시물끼리 비교한 결과예요(높을수록 상위). 표본(도달/방문 수)이 적으면 우연히 튄 값이 1위가 되지 않도록 순위를 보수적으로 계산해요. 프로필 방문·팔로우는 릴스가 API로 제공되지 않아 "-"로 보이고, 게시물을 눌러 직접 입력할 수 있어요.</div>
+        <div class="panel-desc">게시물의 오가닉+유료 합산 수치예요. 표는 아래 순서대로 왼쪽에서 오른쪽으로 읽어요. 색이 들어간 칸이 핵심 지표이고, 그 옆의 순위는 전체 게시물끼리 비교한 결과예요(높을수록 상위). 프로필 방문·팔로우는 릴스가 API로 제공되지 않아 "-"로 보이고, 게시물을 눌러 직접 입력할 수 있어요.</div>
         <div class="ad-flow" aria-label="전체 게시물 분석 순서">
           <span class="ad-flow-step">① 노출</span><span class="ad-flow-arrow">→</span>
           <span class="ad-flow-step">② 콘텐츠 반응</span><span class="ad-flow-arrow">→</span>
           <span class="ad-flow-step">③ 프로필 유입</span><span class="ad-flow-arrow">→</span>
           <span class="ad-flow-step">④ 팔로우 전환</span>
+        </div>
+        <div class="method-note">
+          📊 <strong>참여율·프로필 방문률·팔로우 전환율의 순위는 어떻게 정해지나요?</strong><br>
+          화면에 보이는 %는 실제 계산값 그대로지만, 순위는 그 %가 아니라 <strong>월슨 신뢰구간 하한(Wilson lower bound)</strong>이라는 통계 방식으로 매겨요.
+          표본(도달·방문 수)이 적은 게시물은 우연히 높은 값이 나오기 쉬워서, 그런 경우 실제로는 더 낮을 가능성을 감안해 순위를 보수적으로 낮춰 계산해요.
+          예를 들어 "5명 중 1명 팔로우(20%)"보다 "500명 중 80명 팔로우(16%)"가 더 신뢰할 수 있는 결과라 더 높은 순위를 받을 수 있어요.
         </div>
         <div class="table-wrap">
           <table id="postsTable">

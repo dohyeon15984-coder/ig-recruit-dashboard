@@ -25,7 +25,11 @@ function engagementRate(post) {
   return interactions / base;
 }
 
-function groupAvgEngagement(posts, keyFn, labelFn, valueFn = engagementRate) {
+// 카테고리 평균을 "게시물별 참여율의 단순 평균"으로 내면, 도달이 아주 적은 게시물 한두 개가
+// 우연히 높은 참여율을 찍었을 때 카테고리 전체 평균을 크게 끌어올릴 수 있다. 그래서 게시물 수가
+// 아니라 도달(표본) 크기로 가중해서 "카테고리 전체 상호작용 합 ÷ 카테고리 전체 도달 합"으로
+// 계산한다 — 도달이 적은 게시물은 자연스럽게 적은 비중만 차지하게 된다.
+function groupAvgEngagement(posts, keyFn, labelFn, knFn) {
   const groups = new Map();
   for (const post of posts) {
     const key = keyFn(post);
@@ -34,11 +38,16 @@ function groupAvgEngagement(posts, keyFn, labelFn, valueFn = engagementRate) {
     groups.get(key).push(post);
   }
   return [...groups.entries()]
-    .map(([key, items]) => ({
-      key,
-      label: labelFn ? labelFn(key) : key,
-      value: items.reduce((sum, p) => sum + valueFn(p), 0) / items.length
-    }))
+    .map(([key, items]) => {
+      let k = 0;
+      let n = 0;
+      for (const p of items) {
+        const pair = knFn(p);
+        k += pair.k;
+        n += pair.n;
+      }
+      return { key, label: labelFn ? labelFn(key) : key, value: n ? k / n : 0 };
+    })
     .sort((a, b) => b.value - a.value);
 }
 
@@ -48,14 +57,26 @@ function metricRate(post, field) {
   return base ? (post[field] || 0) / base : 0;
 }
 
+function engagementKN(post) {
+  const n = post.reach || post.views || 0;
+  const k = (post.like_count || 0) + (post.comments_count || 0) + (post.saved || 0) + (post.shares || 0) + (post.reposts || 0);
+  return { k: Math.min(k, n), n };
+}
+
+function metricKN(post, field) {
+  const n = post.reach || post.views || 0;
+  return { k: Math.min(post[field] || 0, n), n };
+}
+
 // 카테고리별 참여율 차트/게시물 목록에서 공통으로 쓰는 지표 옵션. app.js에서도 그대로 참조한다.
+// rateFn: 화면에 보여줄 실제 %(그대로 둔다). knFn: 표본 크기를 반영해 집계/정렬할 때 쓰는 { k(성공 수), n(표본 수) }.
 const CATEGORY_METRIC_OPTIONS = {
-  all: { label: '전체 참여율', rateFn: engagementRate },
-  like_count: { label: '좋아요', rateFn: (p) => metricRate(p, 'like_count') },
-  comments_count: { label: '댓글', rateFn: (p) => metricRate(p, 'comments_count') },
-  saved: { label: '저장', rateFn: (p) => metricRate(p, 'saved') },
-  shares: { label: '공유', rateFn: (p) => metricRate(p, 'shares') },
-  reposts: { label: '리포스트', rateFn: (p) => metricRate(p, 'reposts') }
+  all: { label: '전체 참여율', rateFn: engagementRate, knFn: engagementKN },
+  like_count: { label: '좋아요', rateFn: (p) => metricRate(p, 'like_count'), knFn: (p) => metricKN(p, 'like_count') },
+  comments_count: { label: '댓글', rateFn: (p) => metricRate(p, 'comments_count'), knFn: (p) => metricKN(p, 'comments_count') },
+  saved: { label: '저장', rateFn: (p) => metricRate(p, 'saved'), knFn: (p) => metricKN(p, 'saved') },
+  shares: { label: '공유', rateFn: (p) => metricRate(p, 'shares'), knFn: (p) => metricKN(p, 'shares') },
+  reposts: { label: '리포스트', rateFn: (p) => metricRate(p, 'reposts'), knFn: (p) => metricKN(p, 'reposts') }
 };
 
 let followerChartInstance, categoryChartInstance, ageChartInstance, reachSparklineInstance, categoryDonutChartInstance;
@@ -629,7 +650,7 @@ function makeHorizontalPercentBarValueLabelPlugin(textColor) {
 function renderCategoryChart(posts, onCategoryClick, metric = 'all') {
   const metricConfig = CATEGORY_METRIC_OPTIONS[metric] || CATEGORY_METRIC_OPTIONS.all;
   const tagged = posts.filter((p) => p.category);
-  const data = groupAvgEngagement(tagged, (p) => p.category, null, metricConfig.rateFn);
+  const data = groupAvgEngagement(tagged, (p) => p.category, null, metricConfig.knFn);
   const ctx = document.getElementById('categoryChart');
   if (categoryChartInstance) categoryChartInstance.destroy();
   const values = data.map((d) => +(d.value * 100).toFixed(1));

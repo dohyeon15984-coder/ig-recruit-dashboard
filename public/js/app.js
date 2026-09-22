@@ -219,10 +219,18 @@ function renderCategoryEngagementPostList(posts, category, metric = 'all') {
     return;
   }
   const metricConfig = CATEGORY_METRIC_OPTIONS[metric] || CATEGORY_METRIC_OPTIONS.all;
-  const matches = posts.filter((p) => p.category === category).sort((a, b) => metricConfig.rateFn(b) - metricConfig.rateFn(a));
+  // 표시되는 %는 그대로 실제 값이지만, 정렬은 표본(도달)이 적어 우연히 튄 값이 맨 위로 오지
+  // 않도록 월슨 신뢰구간 하한 기준으로 한다(③·④ 표의 순위 계산과 같은 방식).
+  const matches = posts
+    .filter((p) => p.category === category)
+    .sort((a, b) => {
+      const aKN = metricConfig.knFn(a);
+      const bKN = metricConfig.knFn(b);
+      return (wilsonLowerBound(bKN.k, bKN.n) ?? -1) - (wilsonLowerBound(aKN.k, aKN.n) ?? -1);
+    });
   el.innerHTML = `
     <div class="category-engagement-post-list-header">
-      <span>"${escapeHtml(category)}" 게시물 ${matches.length}개 (${metricConfig.label} 기준 순위)</span>
+      <span>"${escapeHtml(category)}" 게시물 ${matches.length}개 (${metricConfig.label} 기준 순위 · 표본이 적으면 순위가 보수적으로 계산돼요)</span>
       <button type="button" class="category-engagement-post-list-close" aria-label="닫기">✕</button>
     </div>
     ${matches.map((p) => categoryEngagementRowHtml(p, metric)).join('') || '<p class="insight-desc">게시물이 없어요.</p>'}
@@ -389,7 +397,14 @@ const POST_DERIVED_METRICS = {
   followConversionRate: (p) => (p.follows != null && p.profile_visits ? p.follows / p.profile_visits : null)
 };
 
+// 열 머리글을 눌러 정렬할 때도 옆에 보이는 순위(1위, 2위 ...)와 같은 순서로 줄이 나오도록,
+// 참여율/방문률/전환율은 표시되는 %가 아니라 순위 계산에 쓰는 월슨 하한 기준으로 정렬한다.
+// (그렇지 않으면 정렬 순서와 순위 배지 순서가 어긋나서 원하는 등수를 찾으려면 표를 뒤져야 한다.)
 function postMetricValue(post, field) {
+  if (field in POST_RANK_KN) {
+    const pair = POST_RANK_KN[field](post);
+    return pair ? wilsonLowerBound(pair.k, pair.n) : null;
+  }
   return field in POST_DERIVED_METRICS ? POST_DERIVED_METRICS[field](post) : post[field];
 }
 
@@ -527,9 +542,16 @@ function renderAdsSummary(adCampaigns) {
 }
 
 // 정렬 기준(field)에 맞는 값을 계산된 지표(m) 또는 원본 캠페인(c)에서 꺼내온다.
+// 열 머리글을 눌러 정렬할 때도 옆에 보이는 순위(1위, 2위 ...)와 같은 순서로 줄이 나오도록,
+// 참여율/방문률/전환율은 표시되는 %가 아니라 순위 계산에 쓰는 월슨 하한 기준으로 정렬한다.
 function getAdSortValue(c, m, field) {
   if (field === 'startDate') return c.startDate || '';
   if (field === 'spend') return Number(c.spend) || 0;
+  if (field in AD_RANK_KN) {
+    const pair = AD_RANK_KN[field](m);
+    const v = pair ? wilsonLowerBound(pair.k, pair.n) : null;
+    return v == null ? -1 : v;
+  }
   if (field in m) {
     const v = m[field];
     return v == null ? -1 : v;
@@ -1665,7 +1687,28 @@ function setupTopScrollbar(wrap) {
   update();
 }
 
+// 표 오른쪽(가로 스크롤 영역) 끝에 가까운 칸 위에서 설명(.info-hint)을 보면, 가운데 정렬된
+// 말풍선이 표 밖으로 잘려나간다. 마우스를 올릴 때마다 실제 위치를 재서, 표 안쪽으로
+// 들어오는 방향으로 말풍선을 뒤집는다.
+function setupInfoHintOverflowGuard() {
+  const ESTIMATED_TOOLTIP_HALF_WIDTH = 130; // CSS max-width(220px) + 여유
+  document.addEventListener(
+    'mouseover',
+    (e) => {
+      const hint = e.target.closest('.info-hint');
+      if (!hint) return;
+      const bounds = (hint.closest('.table-wrap') || document.body).getBoundingClientRect();
+      const rect = hint.getBoundingClientRect();
+      const center = rect.left + rect.width / 2;
+      hint.classList.toggle('info-hint--anchor-right', center + ESTIMATED_TOOLTIP_HALF_WIDTH > bounds.right);
+      hint.classList.toggle('info-hint--anchor-left', center - ESTIMATED_TOOLTIP_HALF_WIDTH < bounds.left);
+    },
+    true
+  );
+}
+
 async function init() {
+  setupInfoHintOverflowGuard();
   setupSortableHeaders();
   setupModal();
   setupNoteModal();
