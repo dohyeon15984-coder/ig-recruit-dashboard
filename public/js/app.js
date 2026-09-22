@@ -1,3 +1,11 @@
+// 포트폴리오용 PDF를 뽑을 때 쓰는 인쇄 모드(?print=<summary|details|ads|posts>). 탭 하나만 골라
+// 그 탭만 보여주고 페이지 크기를 내용 높이에 딱 맞춘다 — 4개 탭을 한 문서에 몰아넣고 크로미움의
+// named @page(탭마다 다른 페이지 크기)로 나누려 했으나 헤드리스 인쇄가 이를 무시해서, 대신
+// 탭마다 따로 한 페이지짜리로 내보낸 뒤 4장을 하나의 PDF로 합치는 방식을 쓴다
+// (scripts/export-portfolio-pdf.js 참고).
+const PRINT_PAGE = new URLSearchParams(location.search).get('print');
+const PRINT_MODE = Boolean(PRINT_PAGE);
+
 const CATEGORY_PLACEHOLDER = '미지정';
 
 const GENDER_LABEL = { F: '여성', M: '남성', U: '미공개' };
@@ -159,7 +167,16 @@ function buildQuery(filters) {
 }
 
 async function fetchDashboard(filters = state.filters) {
-  const res = await fetch(`/api/dashboard${buildQuery(filters)}`);
+  const url = `/api/dashboard${buildQuery(filters)}`;
+  if (PRINT_MODE) {
+    // PDF로 뽑을 때는 브라우저를 헤드리스로 띄워 페이지 load 시점에 바로 인쇄하므로, 데이터를
+    // 동기적으로 받아와서 인쇄되기 전에 렌더링(차트 포함)이 반드시 끝나 있도록 한다.
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', url, false);
+    xhr.send(null);
+    return JSON.parse(xhr.responseText);
+  }
+  const res = await fetch(url);
   return res.json();
 }
 
@@ -247,6 +264,12 @@ function renderCategoryEngagementPostList(posts, category, metric = 'all') {
 // 차트와 그 옆 게시물 목록을 현재 state(선택된 카테고리/지표) 기준으로 함께 다시 그린다.
 // 최초 렌더와 지표 드롭다운 변경 양쪽에서 재사용한다.
 function renderCategoryEngagementSection(posts) {
+  // 인쇄 모드는 막대를 클릭할 수 없으니, 옆 목록이 비어 보이지 않도록 1등 카테고리를 미리 골라둔다.
+  if (PRINT_MODE && !state.categoryEngagementFilter) {
+    const tagged = posts.filter((p) => p.category);
+    const top = groupAvgEngagement(tagged, (p) => p.category, null, CATEGORY_METRIC_OPTIONS.all.knFn)[0];
+    if (top) state.categoryEngagementFilter = top.key;
+  }
   renderCategoryChart(
     posts,
     (category) => {
@@ -926,14 +949,20 @@ function renderPostsTable(data) {
   const monthFiltered =
     state.postsMonthFilter === 'all' ? data.posts : data.posts.filter((p) => p.timestamp.slice(0, 7) === state.postsMonthFilter);
   const categoryFiltered = filterPostsByCategory(monthFiltered, state.postsCategoryFilter);
-  const sorted = sortPosts(categoryFiltered);
   const ranks = computePostRanks(data.posts);
+  // PDF로 뽑을 때는 55개를 다 넣으면 표 하나가 여러 페이지로 넘쳐서, 참여율이 좋은(신뢰도 보정
+  // 기준) 상위 게시물만 보여준다 — 전체 개수는 아래 안내 문구에 그대로 밝힌다.
+  const PRINT_ROW_CAP = 14;
+  const sorted = PRINT_MODE
+    ? [...categoryFiltered].sort((a, b) => postMetricValue(b, 'engagement') - postMetricValue(a, 'engagement')).slice(0, PRINT_ROW_CAP)
+    : sortPosts(categoryFiltered);
   updateSortArrows();
 
   const meta = document.getElementById('postsMeta');
   if (data.meta) {
-    meta.textContent =
-      state.postsMonthFilter === 'all' && state.postsCategoryFilter === 'all' && data.meta.filteredPosts === data.meta.totalPosts
+    meta.textContent = PRINT_MODE
+      ? `참여율 상위 ${sorted.length}개만 표시 (전체 ${data.meta.totalPosts}개 중)`
+      : state.postsMonthFilter === 'all' && state.postsCategoryFilter === 'all' && data.meta.filteredPosts === data.meta.totalPosts
         ? `전체 ${data.meta.totalPosts}개`
         : `전체 ${data.meta.totalPosts}개 중 ${sorted.length}개 표시`;
   }
@@ -1707,6 +1736,7 @@ function setupInfoHintOverflowGuard() {
   );
 }
 
+
 async function init() {
   setupInfoHintOverflowGuard();
   setupSortableHeaders();
@@ -1720,7 +1750,26 @@ async function init() {
   setupTopScrollbar(document.getElementById('adCampaignsTable').closest('.table-wrap'));
   setupTopScrollbar(document.getElementById('postsTable').closest('.table-wrap'));
   setupAdSortableHeaders();
+
+  if (PRINT_MODE) {
+    // 차트가 컨테이너 크기를 기준으로 그려지므로, 렌더링하기 전에 먼저 요청받은 탭 하나만 펼쳐야 한다.
+    document.body.classList.add('print-mode');
+    document.querySelectorAll('.tab-panel').forEach((el) => {
+      el.toggleAttribute('hidden', el.dataset.tabPanel !== PRINT_PAGE);
+    });
+    // 상단 KPI 카드(현재팔로워/조회수/도달)는 ①요약에서만 같이 보여준다.
+    document.querySelector('.kpi-hero-row').hidden = PRINT_PAGE !== 'summary';
+  }
   await refresh();
+  if (PRINT_MODE) {
+    // 웹폰트(Pretendard)가 늦게 로드되면 글자 크기/줄바꿈이 살짝 바뀌면서 지금 잰 높이보다
+    // 실제 인쇄 시점 높이가 커져 페이지가 넘칠 수 있다 — 폰트까지 다 확정된 뒤에 높이를 잰다.
+    // 브라우저의 load 이벤트는 웹폰트(Pretendard) 다운로드가 끝나는 걸 기다려주지 않아서,
+    // 그 전에 캡처하면 나중에 폰트가 바뀌며 줄바꿈/높이가 달라질 수 있다. PDF로 뽑는 스크립트는
+    // load 대신 폰트까지 다 확정된 뒤 붙는 이 표식을 직접 기다린다.
+    await document.fonts.ready;
+    document.documentElement.setAttribute('data-print-ready', '1');
+  }
 
   document.getElementById('syncBtn').addEventListener('click', async () => {
     const btn = document.getElementById('syncBtn');

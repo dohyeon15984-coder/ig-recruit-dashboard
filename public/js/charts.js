@@ -15,6 +15,12 @@ if (window.Chart) {
   Chart.defaults.plugins.tooltip.padding = 10;
   Chart.defaults.plugins.tooltip.cornerRadius = 8;
   Chart.defaults.plugins.tooltip.titleFont = { weight: '600' };
+
+  // 인쇄(PDF 내보내기) 모드에서는 헤드리스 브라우저가 페이지가 뜨자마자 바로 인쇄하므로,
+  // 애니메이션이 끝나길 기다릴 수 없다 — 첫 프레임에 곧바로 완성된 모습으로 그린다.
+  if (new URLSearchParams(location.search).has('print')) {
+    Chart.defaults.animation = false;
+  }
 }
 
 function engagementRate(post) {

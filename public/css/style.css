@@ -1076,3 +1076,51 @@ select.tag-select {
   margin: 0 0 14px;
 }
 .method-note strong { color: var(--text); }
+
+/* ---------- 포트폴리오 PDF 인쇄 모드 (?print=summary|details|ads|posts) ----------
+   탭 하나만 골라 그 탭만 깔끔하게 보여준다. scripts/export-portfolio-pdf.js가 헤드리스
+   브라우저로 이 화면을 통째로(스크롤 없이) 캡처해서 페이지 한 장짜리 PDF로 뽑고, 4탭을
+   순서대로 합친다 — 크로미움의 인쇄(@page) 기능은 내용 높이를 못 미더워서 쓰지 않는다. */
+
+.print-page-title { display: none; }
+
+body.print-mode {
+  width: 1700px;
+  margin: 0 auto;
+}
+/* 표가 가로로 넉넉히 펼쳐지도록, 인쇄 모드에서는 내비게이션 성격의 사이드바를 통째로 뺀다 */
+body.print-mode .sidebar,
+body.print-mode .tab-bar,
+body.print-mode .table-scroll-top,
+body.print-mode #addManualPostBtn,
+body.print-mode .ad-delete-btn,
+body.print-mode section.panel:has(#adCampaignForm) {
+  display: none !important;
+}
+body.print-mode .app-shell { display: block; }
+
+body.print-mode .print-page-title {
+  display: block;
+  margin: 0 0 16px;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+body.print-mode .content { padding: 28px 36px; max-width: none; box-sizing: border-box; }
+
+/* 가로 스크롤 없이 표 전체가 그대로 보이도록: 고정 열/스크롤을 풀고 글자를 조금 줄인다 */
+body.print-mode .table-wrap { overflow: visible; }
+body.print-mode #adCampaignsTable,
+body.print-mode #postsTable { font-size: 10.5px; }
+body.print-mode #adCampaignsTable th,
+body.print-mode #adCampaignsTable td,
+body.print-mode #postsTable th,
+body.print-mode #postsTable td { padding: 6px 5px; }
+body.print-mode #adCampaignsTable th:nth-child(1), body.print-mode #adCampaignsTable td:nth-child(1),
+body.print-mode #adCampaignsTable th:nth-child(2), body.print-mode #adCampaignsTable td:nth-child(2),
+body.print-mode #postsTable th:nth-child(1), body.print-mode #postsTable td:nth-child(1),
+body.print-mode #postsTable th:nth-child(2), body.print-mode #postsTable td:nth-child(2) {
+  position: static;
+  box-shadow: none;
+}

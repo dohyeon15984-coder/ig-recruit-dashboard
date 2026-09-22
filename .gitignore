@@ -9,3 +9,4 @@ public/assets/logo-source.png
 public/assets/gradient-ref.png
 public/assets/gradient-ref-converted.png
 .env.bak
+exports/
