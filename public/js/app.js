@@ -393,12 +393,32 @@ function postMetricValue(post, field) {
   return field in POST_DERIVED_METRICS ? POST_DERIVED_METRICS[field](post) : post[field];
 }
 
-// 핵심 지표별 순위(높을수록 상위) 계산. 값이 없는 게시물은 순위에서 제외, 동점은 같은 순위.
+// "N명 중 M명" 비율 지표의 순위는 표본이 작을수록 튀는 값을 그대로 1위로 주지 않도록
+// wilsonLowerBound로 매긴다(정의는 위 참고). 표에 보이는 실제 %는 그대로 raw 값을 쓴다.
+const POST_RANK_KN = {
+  engagement: (p) => {
+    const n = p.reach || p.views || 0;
+    if (!n) return null;
+    return { k: (p.like_count || 0) + (p.comments_count || 0) + (p.saved || 0) + (p.shares || 0) + (p.reposts || 0), n };
+  },
+  profileVisitRate: (p) => (p.profile_visits != null && p.reach ? { k: p.profile_visits, n: p.reach } : null),
+  followConversionRate: (p) => (p.follows != null && p.profile_visits ? { k: p.follows, n: p.profile_visits } : null)
+};
+
+// 핵심 지표별 순위({ rank, k, n }) 계산. 값이 없는 게시물은 순위에서 제외, 동점은 같은 순위.
 function computePostRanks(posts) {
   const ranks = {};
   for (const field of Object.keys(POST_DERIVED_METRICS)) {
-    const valued = posts.map((p) => ({ id: p.id, v: POST_DERIVED_METRICS[field](p) })).filter((x) => x.v != null);
-    ranks[field] = { byId: new Map(valued.map(({ id, v }) => [id, valued.filter((o) => o.v > v).length + 1])) };
+    const kn = POST_RANK_KN[field];
+    const valued = posts
+      .map((p) => {
+        const pair = kn(p);
+        return pair ? { id: p.id, k: pair.k, n: pair.n, v: wilsonLowerBound(pair.k, pair.n) } : null;
+      })
+      .filter((x) => x != null);
+    ranks[field] = {
+      byId: new Map(valued.map((x) => [x.id, { rank: valued.filter((o) => o.v > x.v).length + 1, k: x.k, n: x.n }]))
+    };
   }
   return ranks;
 }
@@ -490,22 +510,19 @@ function renderAdsSummary(adCampaigns) {
   }
 
   const totalSpend = adCampaigns.reduce((sum, c) => sum + Number(c.spend || 0), 0);
-  let totalReach = 0;
-  let totalEngagement = 0;
+  let totalFollowerGrowth = 0;
   adCampaigns.forEach((c) => {
     const m = computeAdMetrics(c);
-    totalReach += m.reach || 0;
-    totalEngagement += m.engagement || 0;
+    totalFollowerGrowth += m.followerGrowth || 0;
   });
-  const avgCpm = totalReach ? (totalSpend / totalReach) * 1000 : null;
-  const avgCpe = totalEngagement ? totalSpend / totalEngagement : null;
+  const avgCostPerFollower = totalFollowerGrowth ? totalSpend / totalFollowerGrowth : null;
   const avgSpendPerPost = totalSpend / adCampaigns.length;
 
   el.innerHTML = `
     <div class="ad-stat-card"><div class="ad-stat-label">총 광고 집행 건수</div><div class="ad-stat-value">${adCampaigns.length}건</div></div>
     <div class="ad-stat-card"><div class="ad-stat-label">누적 광고비</div><div class="ad-stat-value">${Math.round(totalSpend).toLocaleString()}원</div></div>
     <div class="ad-stat-card"><div class="ad-stat-label">게시물당 평균 광고비</div><div class="ad-stat-value">${Math.round(avgSpendPerPost).toLocaleString()}원</div></div>
-    <div class="ad-stat-card"><div class="ad-stat-label"><span class="info-hint" data-tooltip="CPM(Cost Per Mille): 도달 1,000회당 광고비">평균 CPM</span></div><div class="ad-stat-value">${avgCpm != null ? Math.round(avgCpm).toLocaleString() + '원' : '-'}</div></div>
+    <div class="ad-stat-card"><div class="ad-stat-label"><span class="info-hint" data-tooltip="팔로워당 비용 = 광고비 ÷ 팔로우, 전체 광고를 합쳐서 계산">평균 팔로워당 비용</span></div><div class="ad-stat-value">${avgCostPerFollower != null ? Math.round(avgCostPerFollower).toLocaleString() + '원' : '-'}</div></div>
   `;
 }
 
@@ -558,6 +575,20 @@ const pctText = (v) => (v != null ? (v * 100).toFixed(1) + '%' : '-');
 const countText = (v) => (v != null ? Number(v).toLocaleString() : '-');
 const wonText = (v) => (v != null ? Math.round(v).toLocaleString() + '원' : '-');
 
+// 참여율/방문률/전환율처럼 "몇 명 중 몇 명"으로 계산되는 비율은 표본(분모)이 작으면
+// 우연히 튄 값이 그대로 1위가 될 수 있다(예: 프로필 방문 5명 중 팔로우 1명 = 20%).
+// 이를 보정하기 위해 순위는 단순 비율이 아니라 월슨 신뢰구간 하한(Wilson lower bound)으로
+// 매긴다 — 같은 비율이어도 표본이 적을수록 더 낮게 잡혀서, "표본이 많고 꾸준히 좋은" 게시물이
+// 위로 올라온다. 표에 보이는 실제 %(pctText)는 그대로 두고, 순위 계산에만 사용한다.
+function wilsonLowerBound(k, n, z = 1.96) {
+  if (!n || n <= 0) return null;
+  const p = Math.min(k, n) / n;
+  const z2 = z * z;
+  const centre = p + z2 / (2 * n);
+  const margin = z * Math.sqrt((p * (1 - p)) / n + z2 / (4 * n * n));
+  return (centre - margin) / (1 + z2 / n);
+}
+
 function adMetricCellHtml(campaign, field) {
   const value = campaign[field];
   const text =
@@ -577,26 +608,47 @@ const AD_RANK_FIELDS = [
   { field: 'costPerFollower', lower: true },
 ];
 
-// 지표별로 { 캠페인 id -> 순위 } 계산. 값이 없는 캠페인은 순위에서 제외, 동점은 같은 순위.
+// "N명 중 M명" 비율 지표의 순위는 표본이 작을수록 튀는 값을 그대로 1위로 주지 않도록
+// wilsonLowerBound로 매긴다(위 설명 참고). CPM·팔로워당 비용은 비율이 아니라 그대로 비교한다.
+const AD_RANK_KN = {
+  rate: (m) => (m.reach ? { k: (m.likes || 0) + (m.saved || 0) + (m.shares || 0), n: m.reach } : null),
+  profileVisitRate: (m) => (m.profileVisits != null && m.reach ? { k: m.profileVisits, n: m.reach } : null),
+  followConversionRate: (m) => (m.followerGrowth != null && m.profileVisits ? { k: m.followerGrowth, n: m.profileVisits } : null)
+};
+
+// 지표별로 { 캠페인 id -> { rank, k, n } } 계산. 값이 없는 캠페인은 순위에서 제외, 동점은 같은 순위.
 function computeAdRanks(adCampaigns) {
   const metricsById = adCampaigns.map((c) => ({ id: c.id, m: computeAdMetrics(c) }));
   const ranks = {};
   for (const { field, lower } of AD_RANK_FIELDS) {
-    const valued = metricsById.filter(({ m }) => m[field] != null);
-    ranks[field] = { total: valued.length, byId: new Map() };
-    for (const { id, m } of valued) {
-      const better = valued.filter(({ m: o }) => (lower ? o[field] < m[field] : o[field] > m[field])).length;
-      ranks[field].byId.set(id, better + 1);
+    const kn = AD_RANK_KN[field];
+    const valued = kn
+      ? metricsById
+          .map(({ id, m }) => {
+            const pair = kn(m);
+            return pair ? { id, k: pair.k, n: pair.n, v: wilsonLowerBound(pair.k, pair.n) } : null;
+          })
+          .filter((x) => x != null)
+      : metricsById.filter(({ m }) => m[field] != null).map(({ id, m }) => ({ id, v: m[field] }));
+    ranks[field] = { byId: new Map() };
+    for (const x of valued) {
+      const better = valued.filter((o) => (lower ? o.v < x.v : o.v > x.v)).length;
+      ranks[field].byId.set(x.id, { rank: better + 1, k: x.k, n: x.n });
     }
   }
   return ranks;
 }
 
 function rankBadge(ranks, id, field) {
-  const r = ranks[field];
-  const rank = r.byId.get(id);
-  if (rank == null) return '';
-  return ` <span class="ad-rank${rank === 1 ? ' ad-rank-top' : ''}">${rank}위</span>`;
+  const entry = ranks[field].byId.get(id);
+  if (!entry) return '';
+  const { rank, k, n } = entry;
+  const hasSample = n != null;
+  const cls = 'ad-rank' + (rank === 1 ? ' ad-rank-top' : '') + (hasSample ? ' info-hint' : '');
+  const tooltip = hasSample
+    ? ` data-tooltip="${n.toLocaleString()}명 중 ${k.toLocaleString()}명 · 표본이 적으면 우연히 높은 값이 나올 수 있어 순위는 보수적으로 계산돼요"`
+    : '';
+  return ` <span class="${cls}"${tooltip}>${rank}위</span>`;
 }
 
 // 2026-08-07 -> 26.08.07
