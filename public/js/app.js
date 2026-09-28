@@ -14,6 +14,21 @@ const PERSON_ICON_SVG =
 const PERSON_ICON_FULL_SVG =
   '<svg viewBox="0 0 24 24" width="52" height="52" fill="currentColor"><circle cx="12" cy="4.5" r="2.5"/><path d="M12 8.5c-2.8 0-5 1.6-5 4.2V15h2v6.5h6V15h2v-2.3c0-2.6-2.2-4.2-5-4.2z"/></svg>';
 
+// 연도 필터용: 날짜 배열에서 고유 연도를 뽑아 <select> 옵션을 채운다("전체 연도" + 최신순).
+// 이미 골라둔 연도가 새 옵션에도 있으면 그대로 유지한다.
+function populateYearFilter(selectId, dates) {
+  const select = document.getElementById(selectId);
+  const years = [...new Set(dates.filter(Boolean).map((d) => d.slice(0, 4)))].sort((a, b) => b.localeCompare(a));
+  const current = select.value;
+  select.innerHTML = '<option value="all">전체 연도</option>' + years.map((y) => `<option value="${y}">${y}년</option>`).join('');
+  select.value = current === 'all' || years.includes(current) ? current : 'all';
+}
+
+// year가 'all'이면 그대로, 아니면 해당 연도(dateField 앞 4자리)만 걸러낸다.
+function filterByYear(items, dateField, year) {
+  return year === 'all' ? items : items.filter((item) => item[dateField]?.slice(0, 4) === year);
+}
+
 // 날짜별 이력을 월 단위로 묶어(같은 달이면 가장 최근 날짜 값 사용) 한 달=한 포인트로 만든다.
 // 팔로워 수처럼 스냅샷 성격의(누적 총계) 지표에 사용 — 매일 동기화해도 그래프/KPI가 월별로 유지된다.
 function monthlyBucketed(history, field) {
@@ -1299,6 +1314,34 @@ function makePointClickHandler(chartKey, chartLabel, instanceKey) {
   };
 }
 
+// 팔로워 성장 추이/조회수 추이/도달 추이 세 차트를 연도 필터(+도달의 월별/일별) 기준으로
+// 같이 다시 그린다. 데이터가 새로 들어왔을 때(renderAll)와 필터를 바꿨을 때 양쪽에서 재사용한다.
+function renderTrendCharts(data) {
+  populateYearFilter('followerYearFilter', data.history.map((h) => h.date));
+  populateYearFilter('viewsYearFilter', data.posts.map((p) => p.timestamp));
+  populateYearFilter('reachYearFilter', data.history.map((h) => h.date));
+
+  const followerYear = document.getElementById('followerYearFilter').value;
+  const viewsYear = document.getElementById('viewsYearFilter').value;
+  const reachYear = document.getElementById('reachYearFilter').value;
+  const reachMode = document.getElementById('reachGranularity')?.value || 'monthly';
+
+  renderFollowerChart(monthlyBucketed(filterByYear(data.history, 'date', followerYear), 'follower_count'));
+  renderViewsOnlyChart(
+    filterByYear(data.posts, 'timestamp', viewsYear),
+    'monthly',
+    notesByPeriodFor('views'),
+    makePointClickHandler('views', '조회수', 'views')
+  );
+  renderReachOnlyChart(
+    // 일별(최근 1개월) 모드는 늘 최근 30일 고정 구간이라 연도 필터와는 안 맞아서, 그때는 무시한다.
+    reachMode === 'daily' ? data.history : filterByYear(data.history, 'date', reachYear),
+    reachMode,
+    notesByPeriodFor('reach'),
+    makePointClickHandler('reach', '도달', 'reach')
+  );
+}
+
 function renderAll(data) {
   renderModeBadgeAndBanner(data);
   renderFollowerHero(data);
@@ -1314,14 +1357,7 @@ function renderAll(data) {
   renderRecentThumbs(data.posts);
   renderPostsTable(data);
   renderAdsTab(data);
-  renderFollowerChart(monthlyBucketed(data.history, 'follower_count'));
-  renderViewsOnlyChart(data.posts, 'monthly', notesByPeriodFor('views'), makePointClickHandler('views', '조회수', 'views'));
-  renderReachOnlyChart(
-    data.history,
-    document.getElementById('reachGranularity')?.value || 'monthly',
-    notesByPeriodFor('reach'),
-    makePointClickHandler('reach', '도달', 'reach')
-  );
+  renderTrendCharts(data);
   renderCategoryEngagementSection(data.posts);
   renderCategoryDonutSection(data.posts);
 }
@@ -1675,9 +1711,13 @@ function setupTabs() {
 }
 
 function setupTrendGranularityControls() {
-  document.getElementById('reachGranularity').addEventListener('change', (e) => {
-    if (state.data)
-      renderReachOnlyChart(state.data.history, e.target.value, notesByPeriodFor('reach'), makePointClickHandler('reach', '도달', 'reach'));
+  document.getElementById('reachGranularity').addEventListener('change', () => {
+    if (state.data) renderTrendCharts(state.data);
+  });
+  ['followerYearFilter', 'viewsYearFilter', 'reachYearFilter'].forEach((id) => {
+    document.getElementById(id).addEventListener('change', () => {
+      if (state.data) renderTrendCharts(state.data);
+    });
   });
 
   // 카테고리별 참여율을 전체 참여율이 아니라 좋아요/댓글/저장/공유/리포스트 중 하나만 놓고

@@ -98,24 +98,33 @@
           </div>
         </div>
         <div class="panel panel-half">
-          <h2>팔로워 성장 추이 (월별)</h2>
+          <div class="panel-header-row">
+            <h2>팔로워 성장 추이 (월별)</h2>
+            <select id="followerYearFilter" class="granularity-select"></select>
+          </div>
           <div class="chart-wrap"><canvas id="followerChart"></canvas></div>
         </div>
       </section>
 
       <section class="panel-row">
         <div class="panel panel-half">
-          <h2>조회수 추이</h2>
+          <div class="panel-header-row">
+            <h2>조회수 추이</h2>
+            <select id="viewsYearFilter" class="granularity-select"></select>
+          </div>
           <div class="panel-desc">그 달에 올라온 게시물들이 지금까지 모은 조회수를 더한 값이에요 (게시물 발행 월 기준이라, 이번 달에 아직 게시물이 없으면 이번 달 막대는 안 보여요)</div>
           <div class="chart-wrap"><canvas id="viewsOnlyChart"></canvas></div>
         </div>
         <div class="panel panel-half">
           <div class="panel-header-row">
             <h2>도달 추이</h2>
-            <select id="reachGranularity" class="granularity-select">
-              <option value="monthly">월별</option>
-              <option value="daily">일별 (최근 1개월)</option>
-            </select>
+            <div class="header-row-controls">
+              <select id="reachYearFilter" class="granularity-select"></select>
+              <select id="reachGranularity" class="granularity-select">
+                <option value="monthly">월별</option>
+                <option value="daily">일별 (최근 1개월)</option>
+              </select>
+            </div>
           </div>
           <div class="panel-desc">내 게시물을 본 서로 다른 사람 수(중복 제외)를 날짜별로 합산한 값이에요</div>
           <div class="chart-wrap"><canvas id="reachOnlyChart"></canvas></div>
