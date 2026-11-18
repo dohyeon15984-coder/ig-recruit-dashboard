@@ -416,14 +416,12 @@ function renderReachHero(history) {
 function renderAiInsightReport(insight) {
   const el = document.getElementById('aiInsightReport');
   if (!insight || !insight.report) {
-    el.hidden = true;
     el.innerHTML = '';
     return;
   }
   const r = insight.report;
   const block = (items, render) => (items || []).map(render).join('');
   const when = new Date(insight.generatedAt).toLocaleString('ko-KR', { dateStyle: 'medium', timeStyle: 'short' });
-  el.hidden = false;
   el.innerHTML = `
     <div class="ai-report-head">
       <div class="ai-report-label">채용분석관 리포트</div>
@@ -451,6 +449,7 @@ function renderAiInsightReport(insight) {
           <p><em>방법</em> ${escapeHtml(a.how)}</p>
         </div>
       </div>`)}
+    ${insight.note ? `<div class="ai-report-notes">${escapeHtml(insight.note)}</div>` : ''}
     ${(r.dataNotes || []).length ? `<div class="ai-report-notes">${r.dataNotes.map((n) => `<div>· ${escapeHtml(n)}</div>`).join('')}</div>` : ''}
   `;
 }
@@ -458,6 +457,18 @@ function renderAiInsightReport(insight) {
 function setupNewInsightButton() {
   const btn = document.getElementById('newInsightBtn');
   btn.addEventListener('click', async () => {
+    const report = document.getElementById('aiInsightReport');
+    // API 키가 없으면(기본) 저장된 최근 리포트를 펼치고 접는 버튼으로 동작한다.
+    if (!state.data?.aiInsightEnabled) {
+      if (!state.data?.aiInsight) {
+        alert('아직 저장된 리포트가 없어요. Claude에게 "새 AI 인사이트 분석해서 저장해줘"라고 요청해주세요.');
+        return;
+      }
+      report.hidden = !report.hidden;
+      btn.textContent = report.hidden ? '✨ 새로운 AI 인사이트' : '✨ 리포트 접기';
+      if (!report.hidden) report.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
     btn.disabled = true;
     btn.textContent = '분석 중... (30초 안팎)';
     try {
@@ -469,6 +480,7 @@ function setupNewInsightButton() {
       }
       state.data.aiInsight = json.aiInsight;
       renderAiInsightReport(json.aiInsight);
+      document.getElementById('aiInsightReport').hidden = false;
       document.getElementById('aiInsightReport').scrollIntoView({ behavior: 'smooth', block: 'start' });
       if (json.remotePush && !json.remotePush.ok) alert('분석은 끝났지만 공유용 사이트로 전달하지 못했어요: ' + json.remotePush.error);
     } catch (err) {
@@ -1430,8 +1442,8 @@ function renderAll(data) {
   renderDemographics(data);
   renderInsights(data.insights);
   renderAiInsightReport(data.aiInsight);
-  // 새 분석은 로컬 PC(API 키가 있는 곳)에서만 만들 수 있다. 공유용 사이트에서는 저장된 최근 리포트만 보여준다.
-  document.getElementById('newInsightBtn').hidden = data.syncDisabled;
+  // 공유용 사이트에서도 저장된 리포트를 펼쳐 볼 수 있다(저장된 게 없으면 버튼을 숨긴다).
+  document.getElementById('newInsightBtn').hidden = data.syncDisabled && !data.aiInsight;
   renderTopPosts(data.posts);
   renderRecentThumbs(data.posts);
   renderPostsTable(data);
