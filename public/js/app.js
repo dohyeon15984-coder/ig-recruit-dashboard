@@ -1228,11 +1228,13 @@ function renderModeBadgeAndBanner(data) {
 const calendarState = { monthOffset: 0 };
 const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 
+const kstDateKey = (iso) => new Date(new Date(iso).getTime() + 9 * 3600 * 1000).toISOString().slice(0, 10);
+
 function renderPostCalendar(posts) {
   const container = document.getElementById('postCalendar');
   const counts = new Map();
   posts.forEach((p) => {
-    const key = p.timestamp.slice(0, 10);
+    const key = kstDateKey(p.timestamp);
     counts.set(key, (counts.get(key) || 0) + 1);
   });
 
@@ -1243,7 +1245,7 @@ function renderPostCalendar(posts) {
   const month = base.getMonth();
   const firstWeekday = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayKey = kstDateKey(new Date().toISOString());
 
   const cells = [];
   for (let i = 0; i < firstWeekday; i++) cells.push('<div class="cal-cell empty"></div>');
@@ -1263,6 +1265,12 @@ function renderPostCalendar(posts) {
     </div>
     <div class="cal-weekdays">${WEEKDAY_LABELS.map((d) => `<div>${d}</div>`).join('')}</div>
     <div class="cal-grid">${cells.join('')}</div>
+    <div class="cal-legend">
+      <span><i class="cal-swatch level-0"></i>없음</span>
+      <span><i class="cal-swatch level-1"></i>1건</span>
+      <span><i class="cal-swatch level-2"></i>2건</span>
+      <span><i class="cal-swatch level-3"></i>3건+</span>
+    </div>
   `;
 
   document.getElementById('calPrev').addEventListener('click', () => {

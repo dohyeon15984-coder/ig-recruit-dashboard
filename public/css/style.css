@@ -168,9 +168,17 @@ h2 { letter-spacing: -0.01em; }
 }
 
 .cal-cell.empty { background: transparent; }
-.cal-cell.level-1 { background: rgba(34, 164, 136, 0.35); color: #fff; }
-.cal-cell.level-2 { background: rgba(34, 164, 136, 0.65); color: #fff; }
-.cal-cell.level-3 { background: var(--brand-teal-light); color: #fff; }
+/* 게시 건수별로 확실히 구분되는 3단계: 어두운 청록 -> 선명한 에메랄드 -> 밝은 민트 */
+.cal-cell.level-1 { background: #1f7a66; color: #fff; font-weight: 600; }
+.cal-cell.level-2 { background: #2fc79f; color: #04201a; font-weight: 700; }
+.cal-cell.level-3 { background: #b4f5e0; color: #04201a; font-weight: 800; }
+
+.cal-legend { display: flex; justify-content: space-between; margin-top: 10px; font-size: 10.5px; color: rgba(255, 255, 255, 0.6); }
+.cal-legend span { display: inline-flex; align-items: center; gap: 4px; }
+.cal-swatch { display: inline-block; width: 11px; height: 11px; border-radius: 3px; background: rgba(255, 255, 255, 0.06); }
+.cal-swatch.level-1 { background: #1f7a66; }
+.cal-swatch.level-2 { background: #2fc79f; }
+.cal-swatch.level-3 { background: #b4f5e0; }
 .cal-cell.today { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7); }
 
 .quick-stats { display: flex; flex-direction: column; gap: 8px; }
