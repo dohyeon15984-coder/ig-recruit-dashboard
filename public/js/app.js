@@ -412,21 +412,24 @@ function renderReachHero(history) {
   renderReachSparkline(withReach.slice(-7));
 }
 
-// "새로운 AI 인사이트": Claude가 만든 채용분석관 리포트를 AI 인사이트 카드 아래에 보여준다.
+// 요약 탭 하단의 "채용분석관 리포트": 매일 아침 Claude가 분석해 저장해 두는 리포트를 그대로 보여준다.
+// (예전 규칙 기반 AI 인사이트 카드 6개를 대체한다.)
 function renderAiInsightReport(insight) {
   const el = document.getElementById('aiInsightReport');
+  const meta = document.getElementById('aiReportMeta');
+  const toggle = document.getElementById('aiReportToggle');
   if (!insight || !insight.report) {
-    el.innerHTML = '';
+    meta.textContent = '';
+    toggle.hidden = true;
+    el.innerHTML = '<p class="insight-desc">리포트가 아직 없어요. 매일 아침 자동으로 만들어져요.</p>';
     return;
   }
+  toggle.hidden = false;
   const r = insight.report;
   const block = (items, render) => (items || []).map(render).join('');
-  const when = new Date(insight.generatedAt).toLocaleString('ko-KR', { dateStyle: 'medium', timeStyle: 'short' });
+  const when = new Date(insight.generatedAt).toLocaleString('ko-KR', { month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  meta.textContent = `${when} 기준 · 게시물 ${insight.postCount}건 분석`;
   el.innerHTML = `
-    <div class="ai-report-head">
-      <div class="ai-report-label">채용분석관 리포트</div>
-      <div class="ai-report-meta">${when} 생성 · 게시물 ${insight.postCount}건 기준 · ${escapeHtml(insight.model || '')}</div>
-    </div>
     <div class="ai-report-headline">${escapeHtml(r.headline || '')}</div>
     <div class="ai-report-cols">
       <div>
@@ -449,64 +452,19 @@ function renderAiInsightReport(insight) {
           <p><em>방법</em> ${escapeHtml(a.how)}</p>
         </div>
       </div>`)}
-    ${insight.note ? `<div class="ai-report-notes">${escapeHtml(insight.note)}</div>` : ''}
     ${(r.dataNotes || []).length ? `<div class="ai-report-notes">${r.dataNotes.map((n) => `<div>· ${escapeHtml(n)}</div>`).join('')}</div>` : ''}
   `;
 }
 
-function setupNewInsightButton() {
-  const btn = document.getElementById('newInsightBtn');
-  btn.addEventListener('click', async () => {
-    const report = document.getElementById('aiInsightReport');
-    // API 키가 없으면(기본) 저장된 최근 리포트를 펼치고 접는 버튼으로 동작한다.
-    if (!state.data?.aiInsightEnabled) {
-      if (!state.data?.aiInsight) {
-        alert('아직 저장된 리포트가 없어요. Claude에게 "새 AI 인사이트 분석해서 저장해줘"라고 요청해주세요.');
-        return;
-      }
-      report.hidden = !report.hidden;
-      btn.textContent = report.hidden ? '✨ 새로운 AI 인사이트' : '✨ 리포트 접기';
-      if (!report.hidden) report.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      return;
-    }
-    btn.disabled = true;
-    btn.textContent = '분석 중... (30초 안팎)';
-    try {
-      const res = await fetch('/api/ai-insight', { method: 'POST' });
-      const json = await res.json();
-      if (!res.ok) {
-        alert(json.error || '분석에 실패했어요.');
-        return;
-      }
-      state.data.aiInsight = json.aiInsight;
-      renderAiInsightReport(json.aiInsight);
-      document.getElementById('aiInsightReport').hidden = false;
-      document.getElementById('aiInsightReport').scrollIntoView({ behavior: 'smooth', block: 'start' });
-      if (json.remotePush && !json.remotePush.ok) alert('분석은 끝났지만 공유용 사이트로 전달하지 못했어요: ' + json.remotePush.error);
-    } catch (err) {
-      alert('분석에 실패했어요: ' + err.message);
-    } finally {
-      btn.disabled = false;
-      btn.textContent = '✨ 새로운 AI 인사이트';
-    }
+function setupAiReportToggle() {
+  const btn = document.getElementById('aiReportToggle');
+  btn.addEventListener('click', () => {
+    const el = document.getElementById('aiInsightReport');
+    el.hidden = !el.hidden;
+    btn.textContent = el.hidden ? '펼치기' : '접기';
   });
 }
 
-function renderInsights(insights) {
-  const list = document.getElementById('insightList');
-  list.innerHTML = insights
-    .map(
-      (i) => `
-      <div class="insight-card">
-        <div class="insight-icon">${i.icon}</div>
-        <div>
-          <div class="insight-title">${i.title}</div>
-          <div class="insight-desc">${i.description}</div>
-        </div>
-      </div>`
-    )
-    .join('');
-}
 
 // 전체 게시물 표의 파생 지표. 계산할 수 없으면(릴스는 프로필 방문/팔로우 데이터가 없음) null.
 const POST_DERIVED_METRICS = {
@@ -1440,10 +1398,7 @@ function renderAll(data) {
   renderLatestPostHero(data.posts);
   renderReachHero(data.history);
   renderDemographics(data);
-  renderInsights(data.insights);
   renderAiInsightReport(data.aiInsight);
-  // 공유용 사이트에서도 저장된 리포트를 펼쳐 볼 수 있다(저장된 게 없으면 버튼을 숨긴다).
-  document.getElementById('newInsightBtn').hidden = data.syncDisabled && !data.aiInsight;
   renderTopPosts(data.posts);
   renderRecentThumbs(data.posts);
   renderPostsTable(data);
@@ -1881,7 +1836,7 @@ async function init() {
   setupTopScrollbar(document.getElementById('adCampaignsTable').closest('.table-wrap'));
   setupTopScrollbar(document.getElementById('postsTable').closest('.table-wrap'));
   setupAdSortableHeaders();
-  setupNewInsightButton();
+  setupAiReportToggle();
 
   if (PRINT_MODE) {
     // 차트가 컨테이너 크기를 기준으로 그려지므로, 렌더링하기 전에 먼저 요청받은 탭 하나만 펼쳐야 한다.
