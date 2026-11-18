@@ -1133,3 +1133,30 @@ body.print-mode #postsTable th:nth-child(2), body.print-mode #postsTable td:nth-
   position: static;
   box-shadow: none;
 }
+
+/* ---------- 새로운 AI 인사이트 (채용분석관 리포트) ---------- */
+.btn-ai-insight {
+  background: linear-gradient(135deg, #1f7a66, #2fc79f);
+  color: #fff; border: none; padding: 8px 16px; border-radius: 999px;
+  font-size: 12.5px; font-weight: 700; cursor: pointer; font-family: inherit;
+}
+.btn-ai-insight:hover { filter: brightness(1.08); }
+.btn-ai-insight:disabled { opacity: 0.6; cursor: wait; }
+.ai-report { margin-top: 22px; padding: 22px 24px; border-radius: var(--radius-md); background: var(--surface-alt); border: 1px solid var(--border); }
+.ai-report-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.ai-report-label { font-size: 12px; font-weight: 800; color: var(--brand-teal-light); letter-spacing: 0.04em; }
+.ai-report-meta { font-size: 11.5px; color: var(--text-faint); }
+.ai-report-headline { font-size: 17px; font-weight: 800; line-height: 1.5; margin-bottom: 18px; }
+.ai-report-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-bottom: 18px; }
+.ai-report-sub { font-size: 12px; font-weight: 800; color: var(--text-mute); margin: 0 0 8px; }
+.ai-report-item { margin-bottom: 12px; }
+.ai-report-item b { font-size: 13.5px; }
+.ai-report-item p, .ai-action p { margin: 3px 0 0; font-size: 12.5px; line-height: 1.6; color: var(--text-mute); }
+.ai-action { display: flex; gap: 12px; padding: 12px 14px; background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 8px; }
+.ai-action-n { flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%; background: var(--brand-navy); color: #fff; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+.ai-action b { font-size: 13.5px; }
+.ai-action em { font-style: normal; font-weight: 700; color: var(--text); margin-right: 4px; }
+.ai-conf { margin-left: 8px; font-size: 11px; font-weight: 700; color: var(--brand-teal-light); }
+.ai-report-notes { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); font-size: 11.5px; color: var(--text-faint); line-height: 1.7; }
+@media (max-width: 860px) { .ai-report-cols { grid-template-columns: 1fr; } }
+body.print-mode #newInsightBtn { display: none !important; }

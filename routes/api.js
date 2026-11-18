@@ -6,6 +6,7 @@ const { filterPosts, filterHistory } = require('../lib/filters');
 const store = require('../lib/store');
 const instagramApi = require('../lib/instagramApi');
 const { pushToRemote } = require('../lib/pushToRemote');
+const { generateInsight } = require('../lib/aiInsight');
 
 const router = express.Router();
 
@@ -60,6 +61,8 @@ function buildDashboardPayload(query = {}) {
     adCampaigns: store.loadAdCampaigns(),
     insights: generateInsights(posts, history, settings),
     categories: store.loadCategories(),
+    aiInsight: store.loadAiInsight(),
+    aiInsightEnabled: Boolean(process.env.ANTHROPIC_API_KEY) && process.env.SYNC_DISABLED !== 'true',
     meta: { totalPosts: allPosts.length, filteredPosts: posts.length }
   };
 }
@@ -118,6 +121,38 @@ router.post('/sync', async (req, res) => {
   } catch (err) {
     console.error('[sync] 동기화 실패:', err);
     res.status(502).json({ error: `Instagram API 동기화 실패: ${err.message}` });
+  }
+});
+
+// "새로운 AI 인사이트": 현재 데이터를 Claude에게 보내 채용분석관 리포트를 새로 받아 저장한다.
+// 호출할 때마다 API 요금이 나가므로 공유용 사이트에서는 막고(키도 안 둔다), 로컬 PC에서만 동작한다.
+router.post('/ai-insight', async (req, res) => {
+  if (process.env.SYNC_DISABLED === 'true') {
+    return res.status(400).json({ error: '새 분석은 로컬 PC의 대시보드에서만 만들 수 있어요. 로컬에서 만들면 이 사이트에도 자동으로 전달돼요.' });
+  }
+  try {
+    const live = isLiveMode();
+    const insight = await generateInsight({
+      posts: live ? store.applyPostCollabInfo(store.applyPostOverrides([...store.loadPosts(), ...store.loadManualPosts()])) : DEMO_POSTS,
+      history: live ? store.loadHistory() : DEMO_HISTORY,
+      adCampaigns: store.loadAdCampaigns(),
+      categories: store.loadCategories()
+    });
+    store.saveAiInsight(insight);
+
+    let remotePush = null;
+    if (process.env.REMOTE_DASHBOARD_URL && process.env.ADMIN_SYNC_SECRET) {
+      try {
+        await pushToRemote(process.env.REMOTE_DASHBOARD_URL, process.env.ADMIN_SYNC_SECRET);
+        remotePush = { ok: true };
+      } catch (err) {
+        remotePush = { ok: false, error: err.message };
+      }
+    }
+    res.json({ aiInsight: insight, remotePush });
+  } catch (err) {
+    console.error('[ai-insight] 실패:', err.message);
+    res.status(err.code === 'NO_KEY' ? 400 : 502).json({ error: err.message });
   }
 });
 
@@ -306,8 +341,9 @@ router.post('/admin/import', (req, res) => {
     return res.status(401).json({ error: '인증에 실패했어요.' });
   }
 
-  const { posts, history, demographics, chartNotes, adCampaigns, postOverrides, categories, postCollabInfo, manualPosts } =
+  const { posts, history, demographics, chartNotes, adCampaigns, postOverrides, categories, postCollabInfo, manualPosts, aiInsight } =
     req.body || {};
+  if (aiInsight && typeof aiInsight === 'object') store.saveAiInsight(aiInsight);
   if (Array.isArray(posts)) store.importPosts(posts);
   if (Array.isArray(history)) store.mergeHistorySnapshots(history);
   if (demographics) store.saveDemographics(demographics);
