@@ -1321,6 +1321,33 @@ function renderPostCalendar(posts) {
   });
 }
 
+// 사이드바: 연도별로 발행한 콘텐츠 수를 가로 막대 + 숫자로 보여준다(한국시간 기준 연도).
+function renderYearlyPosts(posts) {
+  const container = document.getElementById('yearlyPosts');
+  const counts = new Map();
+  posts.forEach((p) => {
+    const year = kstDateKey(p.timestamp).slice(0, 4);
+    counts.set(year, (counts.get(year) || 0) + 1);
+  });
+  if (!counts.size) {
+    container.innerHTML = '<div class="quick-stat-row"><span>데이터 없음</span></div>';
+    return;
+  }
+  const rows = [...counts.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  const max = Math.max(...rows.map(([, n]) => n));
+  const thisYear = kstDateKey(new Date().toISOString()).slice(0, 4);
+  container.innerHTML = rows
+    .map(
+      ([year, n]) => `
+      <div class="year-row" title="${year}년 ${n}건${year === thisYear ? ' (올해, 진행 중)' : ''}">
+        <span class="year-label">${year}</span>
+        <span class="year-track"><span class="year-bar" style="width:${Math.max((n / max) * 100, 3)}%"></span></span>
+        <span class="year-count">${n}건</span>
+      </div>`
+    )
+    .join('');
+}
+
 // 필터 대신 사이드바에 넣는 빠른 요약 지표.
 function renderQuickStats(posts) {
   const container = document.getElementById('quickStats');
@@ -1394,6 +1421,7 @@ function renderAll(data) {
   renderViewsMonthlyHero(data);
   renderReachMonthlyHero(data);
   renderPostCalendar(data.posts);
+  renderYearlyPosts(data.posts);
   renderQuickStats(data.posts);
   renderLatestPostHero(data.posts);
   renderReachHero(data.history);
