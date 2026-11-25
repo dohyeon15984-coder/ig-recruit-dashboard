@@ -65,7 +65,7 @@
       </section>
 
       <section class="panel">
-        <h2>TOP 성과 게시물</h2>
+        <h2><span class="h2-emoji" aria-hidden="true">🏆</span>TOP 성과 게시물</h2>
         <div class="top-posts-groups">
           <div class="top-posts-group">
             <div class="top-posts-group-title">❤️ 좋아요 TOP 3</div>
@@ -84,7 +84,7 @@
 
       <section class="panel">
         <div class="panel-header-row">
-          <h2>AI 채용분석관 리포트</h2>
+          <h2><span class="h2-emoji" aria-hidden="true">🤖</span>AI 채용분석관 리포트</h2>
           <div class="ai-report-tools">
             <span id="aiReportMeta" class="ai-report-meta"></span>
             <button type="button" id="aiReportToggle" class="btn-ai-insight">접기</button>
@@ -98,7 +98,7 @@
       <h1 class="print-page-title">② 프로필 데이터</h1>
       <section class="panel-row">
         <div class="panel panel-half" id="demographicsPanel" hidden>
-          <h2>팔로워 인구통계</h2>
+          <h2><span class="h2-emoji" aria-hidden="true">👥</span>팔로워 인구통계</h2>
           <div class="demographics-grid">
             <div class="demo-gender-col">
               <div class="demo-subtitle">성별</div>
@@ -112,7 +112,7 @@
         </div>
         <div class="panel panel-half">
           <div class="panel-header-row">
-            <h2>팔로워 성장 추이 (월별)</h2>
+            <h2><span class="h2-emoji" aria-hidden="true">📈</span>팔로워 성장 추이 (월별)</h2>
             <select id="followerYearFilter" class="granularity-select"></select>
           </div>
           <div class="chart-wrap"><canvas id="followerChart"></canvas></div>
@@ -122,7 +122,7 @@
       <section class="panel-row">
         <div class="panel panel-half">
           <div class="panel-header-row">
-            <h2>조회수 추이</h2>
+            <h2><span class="h2-emoji" aria-hidden="true">👀</span>조회수 추이</h2>
             <select id="viewsYearFilter" class="granularity-select"></select>
           </div>
           <div class="panel-desc">그 달에 올라온 게시물들이 지금까지 모은 조회수를 더한 값이에요 (게시물 발행 월 기준이라, 이번 달에 아직 게시물이 없으면 이번 달 막대는 안 보여요)</div>
@@ -130,7 +130,7 @@
         </div>
         <div class="panel panel-half">
           <div class="panel-header-row">
-            <h2>도달 추이</h2>
+            <h2><span class="h2-emoji" aria-hidden="true">📡</span>도달 추이</h2>
             <div class="header-row-controls">
               <select id="reachYearFilter" class="granularity-select"></select>
               <select id="reachGranularity" class="granularity-select">
@@ -147,7 +147,7 @@
       <section class="panel-row">
         <div class="panel panel-half">
           <div class="panel-header-row">
-            <h2>카테고리별 참여율</h2>
+            <h2><span class="h2-emoji" aria-hidden="true">💬</span>카테고리별 참여율</h2>
             <select id="categoryMetricSelect" class="granularity-select">
               <option value="all">전체 참여율</option>
               <option value="like_count">좋아요</option>
@@ -161,7 +161,7 @@
           <div class="chart-wrap"><canvas id="categoryChart"></canvas></div>
         </div>
         <div class="panel panel-half">
-          <h2>카테고리 게시물 목록</h2>
+          <h2><span class="h2-emoji" aria-hidden="true">🗂️</span>카테고리 게시물 목록</h2>
           <div class="panel-desc">막대를 클릭하면 그 카테고리의 게시물이 여기 나타나요. 목록 순서는 표본(도달 수)이 적어 우연히 튄 값을 보수적으로 낮춰 매긴 순위예요(월슨 신뢰구간 하한 방식 — 자세한 설명은 ④ 전체 게시물 탭에 있어요)</div>
           <div id="categoryEngagementPostList" class="category-engagement-post-list category-engagement-post-list-standalone"></div>
         </div>
@@ -173,7 +173,7 @@
       <section class="ads-summary-row" id="adsSummaryRow"></section>
 
       <section class="panel">
-        <h2>광고 집행 등록</h2>
+        <h2><span class="h2-emoji" aria-hidden="true">📝</span>광고 집행 등록</h2>
         <div class="panel-desc">메타 광고관리자에서 확인한 값을 직접 입력해주세요 — 이 값들로 아래 지표를 계산해드려요</div>
         <form id="adCampaignForm" class="ad-form">
           <div class="ad-form-field ad-form-field-wide">
@@ -230,7 +230,7 @@
       </section>
 
       <section class="panel">
-        <h2>광고 집행 내역</h2>
+        <h2><span class="h2-emoji" aria-hidden="true">📢</span>광고 집행 내역</h2>
         <div class="panel-desc">모든 지표는 인스타그램 앱 인사이트 &gt; 광고 탭에서 확인한, 광고에만 귀속된 값이에요. 게시물 자체의(오가닉+유료 합산) 수치와는 완전히 별개예요. 표는 아래 순서대로 왼쪽에서 오른쪽으로 읽어요. 색이 들어간 칸이 핵심 지표이고, CPM·참여율·프로필 방문률·팔로우 전환율·팔로워당 비용 옆의 순위는 등록된 광고끼리 비교한 결과예요(CPM과 팔로워당 비용은 낮을수록 상위).</div>
         <div class="ad-flow" aria-label="광고 성과 분석 순서">
           <span class="ad-flow-step">① 노출</span><span class="ad-flow-arrow">→</span>
@@ -289,11 +289,11 @@
       <h1 class="print-page-title">④ 전체 게시물</h1>
       <section class="panel-row">
         <div class="panel panel-half">
-          <h2>최근 업로드 미리보기</h2>
+          <h2><span class="h2-emoji" aria-hidden="true">🖼️</span>최근 업로드 미리보기</h2>
           <div id="recentThumbs" class="recent-thumbs"></div>
         </div>
         <div class="panel panel-half">
-          <h2>카테고리 분포</h2>
+          <h2><span class="h2-emoji" aria-hidden="true">🧩</span>카테고리 분포</h2>
           <div class="chart-wrap chart-wrap-sm"><canvas id="categoryDonutChart"></canvas></div>
         </div>
       </section>
@@ -301,7 +301,7 @@
       <section class="panel">
         <div class="table-header">
           <div class="table-header-left">
-            <h2>전체 게시물</h2>
+            <h2><span class="h2-emoji" aria-hidden="true">📋</span>전체 게시물</h2>
             <button type="button" id="addManualPostBtn" class="btn-manual-post">+ 게시물 직접 추가</button>
           </div>
           <span id="postsMeta" class="posts-meta"></span>

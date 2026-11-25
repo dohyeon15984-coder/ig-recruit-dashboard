@@ -225,6 +225,7 @@ h2 { letter-spacing: -0.01em; }
   border-radius: 999px;
   letter-spacing: 0;
 }
+.panel h2 .h2-emoji { margin-right: 6px; font-size: 14px; line-height: 1; vertical-align: -1px; }
 
 .panel-header-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
 .panel-header-row h2 { margin: 0; }
