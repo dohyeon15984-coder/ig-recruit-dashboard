@@ -1255,11 +1255,12 @@ function renderModeBadgeAndBanner(data) {
   document.getElementById('syncBtn').hidden = Boolean(data.syncDisabled);
 
   const banner = document.getElementById('tokenBanner');
-  if (data.mode === 'live' && data.tokenStatus) {
+  // 토큰은 관리자 PC(로컬)에서만 관리하고 공유용 사이트의 토큰 날짜는 갱신되지 않으므로, 공유 사이트에서는 안내를 숨긴다.
+  if (data.mode === 'live' && data.tokenStatus && !data.syncDisabled) {
     banner.hidden = false;
     banner.textContent =
       data.tokenStatus.daysLeft <= 7
-        ? `⚠️ 액세스 토큰이 ${data.tokenStatus.daysLeft}일 후(${data.tokenStatus.expiresAt}) 만료됩니다. scripts/refresh-token.js 로 갱신하세요.`
+        ? `⚠️ 액세스 토큰이 ${data.tokenStatus.daysLeft}일 후(${data.tokenStatus.expiresAt}) 만료됩니다. refresh-token.bat 으로 갱신하세요.`
         : `액세스 토큰 만료일: ${data.tokenStatus.expiresAt} (D-${data.tokenStatus.daysLeft})`;
     banner.className = `token-banner ${data.tokenStatus.daysLeft <= 7 ? 'urgent' : ''}`;
   } else {
