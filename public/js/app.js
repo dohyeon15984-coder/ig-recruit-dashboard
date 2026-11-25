@@ -98,7 +98,8 @@ function renderFollowerHero(data) {
 // "8월"처럼 실제 달을 명시해야 헷갈리지 않는다.
 // valueUnit: 큰 숫자 뒤에 붙는 말(예: '회 조회', '명 도달'), deltaUnit: 전월 대비 숫자 뒤 단위(예: '회', '명')
 // 큰 숫자(이번 달) 아래에 "지금까지 총합"을 절반 크기로 함께 보여준다. 데이터가 갱신될 때마다 다시 계산된다.
-function renderMonthlyStatHero(elId, title, meaningSuffix, pairs, valueUnit, deltaUnit) {
+// allTimeLabel: 아래 작은 줄의 이름(예: '전체 조회수')
+function renderMonthlyStatHero(elId, title, meaningSuffix, pairs, valueUnit, deltaUnit, allTimeLabel) {
   const el = document.getElementById(elId);
   const { total, delta, currentMonth } = monthlySumFairCompare(pairs);
   const allTime = pairs.reduce((sum, [, v]) => sum + (Number(v) || 0), 0);
@@ -117,18 +118,18 @@ function renderMonthlyStatHero(elId, title, meaningSuffix, pairs, valueUnit, del
           : ''
       }
     </div>
-    ${pairs.length ? `<div class="hero-alltime">지금까지 총 ${Math.round(allTime).toLocaleString()}${valueUnit}</div>` : ''}
+    ${pairs.length ? `<div class="hero-alltime">${allTimeLabel} ${Math.round(allTime).toLocaleString()}${valueUnit}</div>` : ''}
   `;
 }
 
 function renderViewsMonthlyHero(data) {
   const pairs = data.posts.filter((p) => p.views != null).map((p) => [p.timestamp.slice(0, 10), p.views]);
-  renderMonthlyStatHero('viewsMonthlyHero', '조회수', '발행된 게시물이 지금까지 모은 노출 총 횟수', pairs, '회', '회');
+  renderMonthlyStatHero('viewsMonthlyHero', '조회수', '발행된 게시물이 지금까지 모은 노출 총 횟수', pairs, '회', '회', '전체 조회수');
 }
 
 function renderReachMonthlyHero(data) {
   const pairs = data.history.filter((h) => h.reach != null).map((h) => [h.date, h.reach]);
-  renderMonthlyStatHero('reachMonthlyHero', '도달수', '게시물을 본 사람 수(중복 제외)', pairs, '회', '회');
+  renderMonthlyStatHero('reachMonthlyHero', '도달수', '게시물을 본 사람 수(중복 제외)', pairs, '회', '회', '전체 도달수');
 }
 
 function renderDemographics(data) {
