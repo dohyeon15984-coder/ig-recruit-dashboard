@@ -1704,8 +1704,10 @@ function setViewerBadge(count) {
 let viewerBadgeTimer = null;
 async function refreshViewerBadge() {
   try {
-    const res = await fetch('/api/viewers/pending-count');
-    if (res.ok) setViewerBadge((await res.json()).count);
+    const res = await fetch('/api/viewers');
+    if (!res.ok) return;
+    const json = await res.json();
+    if (!json.remoteError) setViewerBadge(json.requests.length);
   } catch {
     /* 네트워크 오류면 다음 확인 때 다시 */
   }
