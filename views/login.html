@@ -40,7 +40,7 @@
 <body>
 <main class="card">
   <h1>동아일보 채용 인스타그램 대시보드</h1>
-  <p class="sub">내부 구성원 전용이에요. 처음이면 열람 신청을 하고, 승인되면 한 번만 로그인하면 돼요.</p>
+  <p class="sub">내부 구성원 전용이에요. 처음이면 열람 신청을 하고, 승인되면 메일과 PIN으로 로그인할 수 있어요.</p>
 
   <div class="tabs" role="tablist">
     <button type="button" class="tab" role="tab" id="tabLogin" aria-selected="true">로그인</button>
@@ -88,7 +88,7 @@
   </form>
 
   <div class="msg" id="msg" role="status"></div>
-  <div class="hint">@donga.com, @ichannela.com 메일만 신청할 수 있어요. PIN은 로그인할 때 쓰니 꼭 기억해주세요. 한 번 로그인하면 이 브라우저에서는 계속 로그인 상태가 유지돼요.</div>
+  <div class="hint">@donga.com, @ichannela.com 메일만 신청할 수 있어요. 승인은 한 번이면 계속 유지되고, 들어올 때마다 메일과 PIN으로 로그인해요(브라우저를 닫거나 12시간이 지나면 다시 로그인).</div>
 </main>
 <script>
   const $ = (id) => document.getElementById(id);
