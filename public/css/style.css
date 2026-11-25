@@ -1162,3 +1162,6 @@ body.print-mode #aiReportToggle { display: none !important; }
 .year-track { height: 10px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
 .year-bar { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #1f7a66, #2fc79f); }
 .year-count { text-align: right; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; }
+
+.auth-user { font-size: 11px; color: rgba(255, 255, 255, 0.7); text-align: center; word-break: break-all; }
+.auth-logout { background: none; border: none; padding: 0; font: inherit; color: #b4f5e0; text-decoration: underline; cursor: pointer; }

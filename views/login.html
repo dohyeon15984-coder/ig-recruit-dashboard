@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>로그인 · 동아일보 채용 인스타그램 대시보드</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px 16px;
+    font-family: 'Pretendard', -apple-system, sans-serif; color: #10231d;
+    background: linear-gradient(160deg, #041713, #0a2e27 55%, #0f3d33);
+  }
+  .card { width: 100%; max-width: 380px; background: #fff; border-radius: 16px; padding: 32px 28px; box-shadow: 0 20px 50px rgba(0,0,0,.35); }
+  h1 { margin: 0 0 6px; font-size: 19px; font-weight: 800; }
+  .sub { margin: 0 0 24px; font-size: 13px; color: #52655e; line-height: 1.6; }
+  label { display: block; font-size: 12.5px; font-weight: 700; color: #52655e; margin-bottom: 6px; }
+  input {
+    width: 100%; font: inherit; font-size: 15px; padding: 11px 12px; border: 1px solid #d7ddda; border-radius: 9px; color: #10231d;
+  }
+  input:focus { outline: 2px solid #22a488; outline-offset: 1px; border-color: #22a488; }
+  #code { letter-spacing: 0.4em; font-size: 20px; text-align: center; font-variant-numeric: tabular-nums; }
+  button {
+    width: 100%; margin-top: 14px; padding: 12px; border: none; border-radius: 9px; font: inherit; font-size: 14.5px; font-weight: 700;
+    color: #fff; background: linear-gradient(135deg, #15594a, #1f7a66); cursor: pointer;
+  }
+  button:disabled { opacity: .6; cursor: wait; }
+  .link { background: none; color: #1f7a66; font-weight: 600; font-size: 13px; margin-top: 10px; padding: 6px; }
+  .msg { min-height: 20px; margin-top: 12px; font-size: 13px; line-height: 1.5; }
+  .msg.err { color: #b8283f; }
+  .msg.ok { color: #1f7a66; }
+  .hint { margin-top: 18px; padding-top: 14px; border-top: 1px solid #e7e9f0; font-size: 12px; color: #6b7280; line-height: 1.6; }
+</style>
+</head>
+<body>
+<main class="card">
+  <h1>동아일보 채용 인스타그램 대시보드</h1>
+  <p class="sub">내부 구성원 전용이에요. 회사 메일로 인증번호를 받아 로그인해주세요.</p>
+
+  <form id="stepEmail">
+    <label for="email">회사 메일</label>
+    <input id="email" type="email" autocomplete="email" placeholder="name@donga.com" required>
+    <button type="submit" id="sendBtn">인증번호 받기</button>
+  </form>
+
+  <form id="stepCode" hidden>
+    <label for="code">인증번호 6자리</label>
+    <input id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="\d{6}" required>
+    <button type="submit" id="verifyBtn">확인</button>
+    <button type="button" class="link" id="backBtn">다른 메일로 받기 / 다시 받기</button>
+  </form>
+
+  <div class="msg" id="msg" role="status"></div>
+  <div class="hint">@donga.com, @ichannela.com 메일만 사용할 수 있어요. 메일이 안 오면 스팸함도 확인해주세요. 한 번 로그인하면 30일간 유지돼요.</div>
+</main>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const say = (text, kind) => { $('msg').textContent = text; $('msg').className = 'msg ' + (kind || ''); };
+  async function post(url, body) {
+    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error || '요청에 실패했어요.');
+    return json;
+  }
+  $('stepEmail').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    $('sendBtn').disabled = true; say('보내는 중...');
+    try {
+      await post('/api/auth/request-code', { email: $('email').value });
+      $('stepEmail').hidden = true; $('stepCode').hidden = false; $('code').focus();
+      say($('email').value.trim() + ' 로 인증번호를 보냈어요. (10분 안에 입력)', 'ok');
+    } catch (err) { say(err.message, 'err'); }
+    $('sendBtn').disabled = false;
+  });
+  $('stepCode').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    $('verifyBtn').disabled = true;
+    try {
+      await post('/api/auth/verify', { email: $('email').value, code: $('code').value });
+      say('확인됐어요. 이동하는 중...', 'ok');
+      location.replace('/');
+    } catch (err) { say(err.message, 'err'); $('verifyBtn').disabled = false; }
+  });
+  $('backBtn').addEventListener('click', () => {
+    $('stepCode').hidden = true; $('stepEmail').hidden = false; $('code').value = ''; say('');
+  });
+</script>
+</body>
+</html>

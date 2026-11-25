@@ -1321,6 +1321,21 @@ function renderPostCalendar(posts) {
   });
 }
 
+// 공유용 사이트(회사 메일 인증)에서 로그인한 사람과 로그아웃 링크를 사이드바 하단에 보여준다.
+function renderAuthUser(email) {
+  const el = document.getElementById('authUser');
+  if (!email) {
+    el.hidden = true;
+    return;
+  }
+  el.hidden = false;
+  el.innerHTML = `${escapeHtml(email)} · <button type="button" id="logoutBtn" class="auth-logout">로그아웃</button>`;
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    location.replace('/login');
+  });
+}
+
 // 사이드바: 연도별로 발행한 콘텐츠 수를 가로 막대 + 숫자로 보여준다(한국시간 기준 연도).
 function renderYearlyPosts(posts) {
   const container = document.getElementById('yearlyPosts');
@@ -1427,6 +1442,7 @@ function renderAll(data) {
   renderReachHero(data.history);
   renderDemographics(data);
   renderAiInsightReport(data.aiInsight);
+  renderAuthUser(data.authUser);
   renderTopPosts(data.posts);
   renderRecentThumbs(data.posts);
   renderPostsTable(data);

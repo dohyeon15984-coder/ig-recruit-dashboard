@@ -68,7 +68,7 @@ function buildDashboardPayload(query = {}) {
 }
 
 router.get('/dashboard', (req, res) => {
-  res.json(buildDashboardPayload(req.query));
+  res.json({ ...buildDashboardPayload(req.query), authUser: req.authUser || null });
 });
 
 router.post('/sync', async (req, res) => {
