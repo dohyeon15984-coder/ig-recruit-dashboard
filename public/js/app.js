@@ -1450,6 +1450,7 @@ function renderAll(data) {
   renderAiInsightReport(data.aiInsight);
   renderAuthUser(data.authUser);
   document.getElementById('viewerAdminBtn').hidden = !data.viewerAdmin;
+  if (data.viewerAdmin) startViewerBadgePolling();
   renderTopPosts(data.posts);
   renderRecentThumbs(data.posts);
   renderPostsTable(data);
@@ -1674,7 +1675,8 @@ async function renderViewerAdmin() {
     <div class="viewer-section-title">승인된 열람자 (${json.viewers.length})</div>
     ${viewerRows}
   `;
-  const act = async (url, payload, confirmText) => {
+  if (!json.remoteError) setViewerBadge(json.requests.length); // 승인·거절하면 숫자도 바로 줄어든다
+  const act =async (url, payload, confirmText) => {
     body.querySelectorAll('button').forEach((b) => (b.disabled = true));
     const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     const j = await r.json();
@@ -1686,6 +1688,35 @@ async function renderViewerAdmin() {
   body.querySelectorAll('[data-approve]').forEach((b) => b.addEventListener('click', () => act('/api/viewers/approve', { requestId: b.dataset.approve }, '승인')));
   body.querySelectorAll('[data-reject]').forEach((b) => b.addEventListener('click', () => act('/api/viewers/reject', { requestId: b.dataset.reject }, '거절')));
   body.querySelectorAll('[data-revoke]').forEach((b) => b.addEventListener('click', () => act('/api/viewers/revoke', { id: b.dataset.revoke }, '회수')));
+}
+
+// 새 열람 신청이 들어오면 "열람자 관리" 버튼에 빨간 숫자, 브라우저 탭 제목에 (N)을 띄운다.
+// 공유 사이트를 5분마다(그리고 이 탭으로 돌아올 때) 확인한다. 확인에 실패하면 이전 숫자를 그대로 둔다.
+const baseTitle = document.title;
+function setViewerBadge(count) {
+  if (count == null) return;
+  const badge = document.getElementById('viewerBadge');
+  badge.textContent = count > 99 ? '99+' : String(count);
+  badge.hidden = !count;
+  document.getElementById('viewerAdminBtn').setAttribute('aria-label', count ? `열람자 관리, 대기 중인 신청 ${count}건` : '열람자 관리');
+  document.title = count ? `(${count}) ${baseTitle}` : baseTitle;
+}
+let viewerBadgeTimer = null;
+async function refreshViewerBadge() {
+  try {
+    const res = await fetch('/api/viewers/pending-count');
+    if (res.ok) setViewerBadge((await res.json()).count);
+  } catch {
+    /* 네트워크 오류면 다음 확인 때 다시 */
+  }
+}
+function startViewerBadgePolling() {
+  if (viewerBadgeTimer) return;
+  refreshViewerBadge();
+  viewerBadgeTimer = setInterval(refreshViewerBadge, 5 * 60 * 1000);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) refreshViewerBadge();
+  });
 }
 
 function setupViewerAdmin() {

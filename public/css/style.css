@@ -1168,6 +1168,12 @@ body.print-mode #aiReportToggle { display: none !important; }
 
 /* 공유 사이트 열람자 관리 모달 */
 .viewer-admin { margin-top: 14px; max-height: 60vh; overflow-y: auto; }
+.viewer-badge {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 6px;
+  margin-left: 7px; border-radius: 999px; background: #e5484d; color: #fff; font-size: 11.5px; font-weight: 800;
+  font-variant-numeric: tabular-nums; vertical-align: 1px; line-height: 1;
+}
+.viewer-badge[hidden] { display: none; }
 .viewer-section-title { font-size: 12.5px; font-weight: 800; color: var(--text-mute); margin: 16px 0 8px; }
 .viewer-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 6px; font-size: 13px; }
 .viewer-sub { font-size: 11.5px; color: var(--text-mute); margin-top: 2px; word-break: break-all; }

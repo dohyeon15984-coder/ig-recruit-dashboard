@@ -390,6 +390,15 @@ router.get('/viewers', localOnly, async (req, res) => {
   }
 });
 
+// 사이드바 "열람자 관리" 버튼의 알림 숫자용: 대기 중인 신청 수만 돌려준다.
+router.get('/viewers/pending-count', localOnly, async (req, res) => {
+  try {
+    res.json({ count: (await pendingRequests()).length });
+  } catch (err) {
+    res.json({ count: null, remoteError: err.message });
+  }
+});
+
 async function pushAndReport(res, extra = {}) {
   try {
     await pushToRemote(process.env.REMOTE_DASHBOARD_URL, process.env.ADMIN_SYNC_SECRET);
