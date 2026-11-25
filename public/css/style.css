@@ -1176,3 +1176,6 @@ body.print-mode #aiReportToggle { display: none !important; }
 .viewer-btn-ghost { background: none; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 12px; font: inherit; font-size: 12.5px; color: var(--text); cursor: pointer; }
 .viewer-btn-ghost:hover { border-color: var(--bad); color: var(--bad); }
 .viewer-error { font-size: 12.5px; color: var(--bad); }
+
+/* 상단 조회수/도달수 카드: 이번 달 숫자 아래 "지금까지 총합"(큰 숫자의 절반 크기) */
+.hero-alltime { margin-top: 6px; font-size: 16px; font-weight: 700; color: rgba(255, 255, 255, 0.85); font-variant-numeric: tabular-nums; }

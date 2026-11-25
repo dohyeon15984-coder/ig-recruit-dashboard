@@ -97,9 +97,11 @@ function renderFollowerHero(data) {
 // 이번 달에 아직 게시물이 없으면 지난달 데이터가 표시되는데, 그럴 땐 "이번 달"이 아니라
 // "8월"처럼 실제 달을 명시해야 헷갈리지 않는다.
 // valueUnit: 큰 숫자 뒤에 붙는 말(예: '회 조회', '명 도달'), deltaUnit: 전월 대비 숫자 뒤 단위(예: '회', '명')
+// 큰 숫자(이번 달) 아래에 "지금까지 총합"을 절반 크기로 함께 보여준다. 데이터가 갱신될 때마다 다시 계산된다.
 function renderMonthlyStatHero(elId, title, meaningSuffix, pairs, valueUnit, deltaUnit) {
   const el = document.getElementById(elId);
   const { total, delta, currentMonth } = monthlySumFairCompare(pairs);
+  const allTime = pairs.reduce((sum, [, v]) => sum + (Number(v) || 0), 0);
 
   const nowMonth = new Date().toISOString().slice(0, 7);
   const monthLabel = !currentMonth ? '이번 달' : currentMonth === nowMonth ? '이번 달' : `${Number(currentMonth.slice(5, 7))}월`;
@@ -115,6 +117,7 @@ function renderMonthlyStatHero(elId, title, meaningSuffix, pairs, valueUnit, del
           : ''
       }
     </div>
+    ${pairs.length ? `<div class="hero-alltime">지금까지 총 ${Math.round(allTime).toLocaleString()}${valueUnit}</div>` : ''}
   `;
 }
 
