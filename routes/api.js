@@ -63,6 +63,8 @@ function buildDashboardPayload(query = {}) {
     categories: store.loadCategories(),
     aiInsight: store.loadAiInsight(),
     aiInsightEnabled: Boolean(process.env.ANTHROPIC_API_KEY) && process.env.SYNC_DISABLED !== 'true',
+    // 관리자 PC(로컬)에서만 "열람자 관리" 버튼을 보여준다.
+    viewerAdmin: process.env.AUTH_REQUIRED !== 'true' && process.env.SYNC_DISABLED !== 'true' && Boolean(process.env.REMOTE_DASHBOARD_URL),
     meta: { totalPosts: allPosts.length, filteredPosts: posts.length }
   };
 }
@@ -332,6 +334,110 @@ router.post('/settings', (req, res) => {
 // Meta가 Render 같은 공용 클라우드 호스팅의 IP를 차단해 배포 서버에서 직접 동기화가 안 되는 경우를 위한
 // 우회 경로: 로컬 PC(막히지 않은 IP)에서 동기화한 데이터를 배포 서버로 밀어넣는다.
 // scripts/push-to-remote.js 에서 사용 — ADMIN_SYNC_SECRET이 설정된 배포 환경에서만 동작한다.
+// ---------- 공유용 사이트 열람자 관리 ----------
+function checkAdminSecret(req, res) {
+  const secret = process.env.ADMIN_SYNC_SECRET;
+  if (!secret) {
+    res.status(404).json({ error: '이 기능이 활성화되지 않았어요 (ADMIN_SYNC_SECRET 미설정).' });
+    return false;
+  }
+  if (req.get('x-admin-secret') !== secret) {
+    res.status(401).json({ error: '인증에 실패했어요.' });
+    return false;
+  }
+  return true;
+}
+
+// [공유 사이트] 대기 중인 열람 신청 목록. 로컬 PC의 "열람자 관리" 화면이 관리자 비밀키로 가져간다.
+router.get('/admin/access-requests', (req, res) => {
+  if (!checkAdminSecret(req, res)) return;
+  res.json({ requests: store.loadAccessRequests() });
+});
+
+// [로컬 PC 전용] 열람자 관리. 공유 사이트(인증 켜짐/동기화 꺼짐)에서는 막는다.
+function localOnly(req, res, next) {
+  if (process.env.AUTH_REQUIRED === 'true' || process.env.SYNC_DISABLED === 'true') {
+    return res.status(403).json({ error: '열람자 관리는 관리자 PC의 로컬 대시보드에서만 할 수 있어요.' });
+  }
+  if (!process.env.REMOTE_DASHBOARD_URL || !process.env.ADMIN_SYNC_SECRET) {
+    return res.status(400).json({ error: '.env에 REMOTE_DASHBOARD_URL과 ADMIN_SYNC_SECRET이 필요해요.' });
+  }
+  next();
+}
+
+async function fetchRemoteRequests() {
+  const url = process.env.REMOTE_DASHBOARD_URL.replace(/\/$/, '') + '/api/admin/access-requests';
+  const r = await fetch(url, { headers: { 'x-admin-secret': process.env.ADMIN_SYNC_SECRET } });
+  const json = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(json.error || `공유 사이트 응답 실패 (${r.status})`);
+  return json.requests || [];
+}
+
+const publicViewer = (v) => ({ id: v.id, name: v.name, dept: v.dept, email: v.email, approvedAt: v.approvedAt });
+const publicRequest = (r) => ({ id: r.id, name: r.name, dept: r.dept, email: r.email, requestedAt: r.requestedAt });
+
+async function pendingRequests() {
+  const resolved = new Set(store.loadResolvedRequestIds());
+  return (await fetchRemoteRequests()).filter((r) => !resolved.has(r.id));
+}
+
+router.get('/viewers', localOnly, async (req, res) => {
+  const viewers = store.loadViewers().filter((v) => !v.revokedAt).map(publicViewer);
+  try {
+    res.json({ viewers, requests: (await pendingRequests()).map(publicRequest) });
+  } catch (err) {
+    res.json({ viewers, requests: [], remoteError: err.message });
+  }
+});
+
+async function pushAndReport(res, extra = {}) {
+  try {
+    await pushToRemote(process.env.REMOTE_DASHBOARD_URL, process.env.ADMIN_SYNC_SECRET);
+    res.json({ ok: true, pushed: true, ...extra });
+  } catch (err) {
+    res.json({ ok: true, pushed: false, pushError: err.message, ...extra });
+  }
+}
+
+router.post('/viewers/approve', localOnly, async (req, res) => {
+  let requests;
+  try {
+    requests = await pendingRequests();
+  } catch (err) {
+    return res.status(502).json({ error: '공유 사이트에서 신청 목록을 가져오지 못했어요: ' + err.message });
+  }
+  const r = requests.find((x) => x.id === req.body?.requestId);
+  if (!r) return res.status(404).json({ error: '신청을 찾지 못했어요. 목록을 새로고침해주세요.' });
+  const viewers = store.loadViewers().filter((v) => v.email !== r.email);
+  viewers.push({
+    id: 'v_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    name: r.name,
+    dept: r.dept,
+    email: r.email,
+    pinHash: r.pinHash,
+    requestedAt: r.requestedAt,
+    approvedAt: new Date().toISOString()
+  });
+  store.saveViewers(viewers);
+  store.addResolvedRequestId(r.id);
+  await pushAndReport(res);
+});
+
+router.post('/viewers/reject', localOnly, async (req, res) => {
+  if (!req.body?.requestId) return res.status(400).json({ error: 'requestId가 필요해요.' });
+  store.addResolvedRequestId(req.body.requestId);
+  if (!store.loadViewers().length) store.saveViewers([]); // 목록 파일이 있어야 공유 사이트로 전송된다
+  await pushAndReport(res);
+});
+
+router.post('/viewers/revoke', localOnly, async (req, res) => {
+  const before = store.loadViewers();
+  const after = before.filter((v) => v.id !== req.body?.id);
+  if (after.length === before.length) return res.status(404).json({ error: '열람자를 찾지 못했어요.' });
+  store.saveViewers(after);
+  await pushAndReport(res);
+});
+
 router.post('/admin/import', (req, res) => {
   const secret = process.env.ADMIN_SYNC_SECRET;
   if (!secret) {
@@ -344,6 +450,12 @@ router.post('/admin/import', (req, res) => {
   const { posts, history, demographics, chartNotes, adCampaigns, postOverrides, categories, postCollabInfo, manualPosts, aiInsight } =
     req.body || {};
   if (aiInsight && typeof aiInsight === 'object') store.saveAiInsight(aiInsight);
+  // 열람자: 승인 목록은 통째로 교체(회수가 바로 반영되도록), 처리된 신청은 대기 목록에서 지운다.
+  if (Array.isArray(req.body?.viewers)) store.saveViewers(req.body.viewers);
+  if (Array.isArray(req.body?.resolvedRequestIds) && req.body.resolvedRequestIds.length) {
+    const done = new Set(req.body.resolvedRequestIds);
+    store.saveAccessRequests(store.loadAccessRequests().filter((r) => !done.has(r.id)));
+  }
   if (Array.isArray(posts)) store.importPosts(posts);
   if (Array.isArray(history)) store.mergeHistorySnapshots(history);
   if (demographics) store.saveDemographics(demographics);

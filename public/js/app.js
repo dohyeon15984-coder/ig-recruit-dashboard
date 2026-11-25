@@ -96,7 +96,8 @@ function renderFollowerHero(data) {
 // meaningSuffix 앞에 실제로 집계된 달을 붙인다. 예: 조회수 카드는 "게시물이 발행된 달" 기준이라
 // 이번 달에 아직 게시물이 없으면 지난달 데이터가 표시되는데, 그럴 땐 "이번 달"이 아니라
 // "8월"처럼 실제 달을 명시해야 헷갈리지 않는다.
-function renderMonthlyStatHero(elId, title, meaningSuffix, pairs) {
+// valueUnit: 큰 숫자 뒤에 붙는 말(예: '회 조회', '명 도달'), deltaUnit: 전월 대비 숫자 뒤 단위(예: '회', '명')
+function renderMonthlyStatHero(elId, title, meaningSuffix, pairs, valueUnit, deltaUnit) {
   const el = document.getElementById(elId);
   const { total, delta, currentMonth } = monthlySumFairCompare(pairs);
 
@@ -107,10 +108,10 @@ function renderMonthlyStatHero(elId, title, meaningSuffix, pairs) {
   el.innerHTML = `
     <div class="hero-title">${title} <span class="hero-title-note">— ${meaning}</span></div>
     <div class="hero-value-row">
-      <div class="follower-hero-value">${total != null ? Math.round(total).toLocaleString() + '회' : '-'}</div>
+      <div class="follower-hero-value">${total != null ? Math.round(total).toLocaleString() + valueUnit : '-'}</div>
       ${
         delta != null
-          ? `<div class="hero-delta ${delta >= 0 ? 'pos' : 'neg'}">${delta >= 0 ? '+' : ''}${Math.round(delta).toLocaleString()}회 전월 대비</div>`
+          ? `<div class="hero-delta ${delta >= 0 ? 'pos' : 'neg'}">${delta >= 0 ? '+' : ''}${Math.round(delta).toLocaleString()}${deltaUnit} 전월 대비</div>`
           : ''
       }
     </div>
@@ -119,12 +120,12 @@ function renderMonthlyStatHero(elId, title, meaningSuffix, pairs) {
 
 function renderViewsMonthlyHero(data) {
   const pairs = data.posts.filter((p) => p.views != null).map((p) => [p.timestamp.slice(0, 10), p.views]);
-  renderMonthlyStatHero('viewsMonthlyHero', '조회수', '발행된 게시물이 지금까지 모은 노출 총 횟수', pairs);
+  renderMonthlyStatHero('viewsMonthlyHero', '조회수', '발행된 게시물이 지금까지 모은 노출 총 횟수', pairs, '회 조회', '회');
 }
 
 function renderReachMonthlyHero(data) {
   const pairs = data.history.filter((h) => h.reach != null).map((h) => [h.date, h.reach]);
-  renderMonthlyStatHero('reachMonthlyHero', '도달수', '게시물을 본 사람 수(중복 제외)', pairs);
+  renderMonthlyStatHero('reachMonthlyHero', '도달수', '게시물을 본 사람 수(중복 제외)', pairs, '명 도달', '명');
 }
 
 function renderDemographics(data) {
@@ -1443,6 +1444,7 @@ function renderAll(data) {
   renderDemographics(data);
   renderAiInsightReport(data.aiInsight);
   renderAuthUser(data.authUser);
+  document.getElementById('viewerAdminBtn').hidden = !data.viewerAdmin;
   renderTopPosts(data.posts);
   renderRecentThumbs(data.posts);
   renderPostsTable(data);
@@ -1621,6 +1623,76 @@ function renderCategoryManageList() {
       await refresh();
       renderCategoryManageList();
     });
+  });
+}
+
+// ---------- 공유 사이트 열람자 관리(관리자 PC의 로컬 대시보드에서만) ----------
+async function renderViewerAdmin() {
+  const body = document.getElementById('viewerModalBody');
+  body.innerHTML = '<p class="insight-desc">공유 사이트에서 신청 목록을 가져오는 중... (서버가 잠들어 있으면 1분쯤 걸려요)</p>';
+  const res = await fetch('/api/viewers');
+  const json = await res.json();
+  if (!res.ok) {
+    body.innerHTML = `<p class="viewer-error">${escapeHtml(json.error || '목록을 불러오지 못했어요.')}</p>`;
+    return;
+  }
+  const fmt = (iso) => (iso ? new Date(iso).toLocaleString('ko-KR', { dateStyle: 'short', timeStyle: 'short' }) : '');
+  const reqRows = json.requests.length
+    ? json.requests
+        .map(
+          (r) => `
+      <div class="viewer-row">
+        <div><b>${escapeHtml(r.name)}</b> · ${escapeHtml(r.dept)}<div class="viewer-sub">${escapeHtml(r.email)} · ${fmt(r.requestedAt)} 신청</div></div>
+        <div class="viewer-actions">
+          <button type="button" class="btn-primary" data-approve="${r.id}">승인</button>
+          <button type="button" class="viewer-btn-ghost" data-reject="${r.id}">거절</button>
+        </div>
+      </div>`
+        )
+        .join('')
+    : '<p class="insight-desc">대기 중인 신청이 없어요.</p>';
+  const viewerRows = json.viewers.length
+    ? json.viewers
+        .map(
+          (v) => `
+      <div class="viewer-row">
+        <div><b>${escapeHtml(v.name)}</b> · ${escapeHtml(v.dept)}<div class="viewer-sub">${escapeHtml(v.email)} · ${fmt(v.approvedAt)} 승인</div></div>
+        <div class="viewer-actions"><button type="button" class="viewer-btn-ghost" data-revoke="${v.id}">회수</button></div>
+      </div>`
+        )
+        .join('')
+    : '<p class="insight-desc">아직 승인한 열람자가 없어요.</p>';
+  body.innerHTML = `
+    ${json.remoteError ? `<p class="viewer-error">공유 사이트에서 신청 목록을 가져오지 못했어요: ${escapeHtml(json.remoteError)}</p>` : ''}
+    <div class="viewer-section-title">대기 중인 신청 (${json.requests.length})</div>
+    ${reqRows}
+    <div class="viewer-section-title">승인된 열람자 (${json.viewers.length})</div>
+    ${viewerRows}
+  `;
+  const act = async (url, payload, confirmText) => {
+    body.querySelectorAll('button').forEach((b) => (b.disabled = true));
+    const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const j = await r.json();
+    if (!r.ok) alert(j.error || '처리하지 못했어요.');
+    else if (!j.pushed) alert(`${confirmText}했지만 공유 사이트로 전달하지 못했어요: ${j.pushError}
+잠시 뒤 "지금 동기화"를 눌러주세요.`);
+    renderViewerAdmin();
+  };
+  body.querySelectorAll('[data-approve]').forEach((b) => b.addEventListener('click', () => act('/api/viewers/approve', { requestId: b.dataset.approve }, '승인')));
+  body.querySelectorAll('[data-reject]').forEach((b) => b.addEventListener('click', () => act('/api/viewers/reject', { requestId: b.dataset.reject }, '거절')));
+  body.querySelectorAll('[data-revoke]').forEach((b) => b.addEventListener('click', () => act('/api/viewers/revoke', { id: b.dataset.revoke }, '회수')));
+}
+
+function setupViewerAdmin() {
+  const modal = document.getElementById('viewerModal');
+  const close = () => (modal.hidden = true);
+  document.getElementById('viewerAdminBtn').addEventListener('click', () => {
+    modal.hidden = false;
+    renderViewerAdmin();
+  });
+  document.getElementById('viewerModalClose').addEventListener('click', close);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) close();
   });
 }
 
@@ -1881,6 +1953,7 @@ async function init() {
   setupTopScrollbar(document.getElementById('postsTable').closest('.table-wrap'));
   setupAdSortableHeaders();
   setupAiReportToggle();
+  setupViewerAdmin();
 
   if (PRINT_MODE) {
     // 차트가 컨테이너 크기를 기준으로 그려지므로, 렌더링하기 전에 먼저 요청받은 탭 하나만 펼쳐야 한다.

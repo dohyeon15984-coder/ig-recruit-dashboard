@@ -36,6 +36,7 @@
 
     <div class="sidebar-footer">
       <button id="syncBtn" class="btn-primary btn-block">지금 동기화</button>
+      <button id="viewerAdminBtn" class="btn-ghost btn-block" hidden>열람자 관리</button>
       <div id="tokenBanner" class="token-banner" hidden></div>
       <div id="authUser" class="auth-user" hidden></div>
     </div>
@@ -383,6 +384,15 @@
       <button id="noteModalDelete" class="btn-ghost" hidden>삭제</button>
       <button id="noteModalSave" class="btn-primary">저장</button>
     </div>
+  </div>
+</div>
+
+<div id="viewerModal" class="modal-backdrop" hidden>
+  <div class="modal-card">
+    <button id="viewerModalClose" class="modal-close" aria-label="닫기">✕</button>
+    <div class="note-modal-title">공유 사이트 열람자 관리</div>
+    <div class="post-override-desc">공유용 사이트에서 들어온 열람 신청을 승인하거나 거절하고, 승인한 사람을 회수할 수 있어요. 아는 사람인지 이름과 부서로 꼭 확인한 뒤 승인해주세요.</div>
+    <div id="viewerModalBody" class="viewer-admin"></div>
   </div>
 </div>
 

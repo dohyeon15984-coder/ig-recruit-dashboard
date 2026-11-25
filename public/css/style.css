@@ -1165,3 +1165,14 @@ body.print-mode #aiReportToggle { display: none !important; }
 
 .auth-user { font-size: 11px; color: rgba(255, 255, 255, 0.7); text-align: center; word-break: break-all; }
 .auth-logout { background: none; border: none; padding: 0; font: inherit; color: #b4f5e0; text-decoration: underline; cursor: pointer; }
+
+/* 공유 사이트 열람자 관리 모달 */
+.viewer-admin { margin-top: 14px; max-height: 60vh; overflow-y: auto; }
+.viewer-section-title { font-size: 12.5px; font-weight: 800; color: var(--text-mute); margin: 16px 0 8px; }
+.viewer-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 6px; font-size: 13px; }
+.viewer-sub { font-size: 11.5px; color: var(--text-mute); margin-top: 2px; word-break: break-all; }
+.viewer-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.viewer-actions .btn-primary { padding: 6px 12px; font-size: 12.5px; }
+.viewer-btn-ghost { background: none; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 12px; font: inherit; font-size: 12.5px; color: var(--text); cursor: pointer; }
+.viewer-btn-ghost:hover { border-color: var(--bad); color: var(--bad); }
+.viewer-error { font-size: 12.5px; color: var(--bad); }
