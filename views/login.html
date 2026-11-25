@@ -40,7 +40,7 @@
 <body>
 <main class="card">
   <h1>동아일보 채용 인스타그램 대시보드</h1>
-  <p class="sub">내부 구성원 전용이에요. 처음이면 열람 신청을 하고, 승인되면 로그인할 수 있어요.</p>
+  <p class="sub">내부 구성원 전용이에요. 처음이면 열람 신청을 하고, 승인되면 한 번만 로그인하면 돼요.</p>
 
   <div class="tabs" role="tablist">
     <button type="button" class="tab" role="tab" id="tabLogin" aria-selected="true">로그인</button>
@@ -53,8 +53,8 @@
       <input id="loginEmail" type="email" autocomplete="email" placeholder="name@donga.com" required>
     </div>
     <div class="field">
-      <label for="loginPin">PIN (숫자 6자리)</label>
-      <input id="loginPin" class="pin" type="password" inputmode="numeric" maxlength="6" autocomplete="current-password" required>
+      <label for="loginPin">PIN (숫자 4자리)</label>
+      <input id="loginPin" class="pin" type="password" inputmode="numeric" maxlength="4" autocomplete="current-password" required>
     </div>
     <button type="submit" class="primary" id="loginBtn">로그인</button>
   </form>
@@ -76,19 +76,19 @@
     </div>
     <div class="row">
       <div class="field">
-        <label for="reqPin">PIN 정하기 (숫자 6자리)</label>
-        <input id="reqPin" class="pin" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password" required>
+        <label for="reqPin">PIN 정하기 (숫자 4자리)</label>
+        <input id="reqPin" class="pin" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password" required>
       </div>
       <div class="field">
         <label for="reqPin2">PIN 확인</label>
-        <input id="reqPin2" class="pin" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password" required>
+        <input id="reqPin2" class="pin" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password" required>
       </div>
     </div>
     <button type="submit" class="primary" id="requestBtn">열람 신청</button>
   </form>
 
   <div class="msg" id="msg" role="status"></div>
-  <div class="hint">@donga.com, @ichannela.com 메일만 신청할 수 있어요. PIN은 로그인할 때 쓰니 꼭 기억해주세요. 한 번 로그인하면 30일간 유지돼요.</div>
+  <div class="hint">@donga.com, @ichannela.com 메일만 신청할 수 있어요. PIN은 로그인할 때 쓰니 꼭 기억해주세요. 한 번 로그인하면 이 브라우저에서는 계속 로그인 상태가 유지돼요.</div>
 </main>
 <script>
   const $ = (id) => document.getElementById(id);
@@ -123,7 +123,7 @@
 
   $('requestForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (!/^\d{6}$/.test($('reqPin').value)) return say('PIN은 숫자 6자리로 정해주세요.', 'err');
+    if (!/^\d{4}$/.test($('reqPin').value)) return say('PIN은 숫자 4자리로 정해주세요.', 'err');
     if ($('reqPin').value !== $('reqPin2').value) return say('PIN 두 칸이 서로 달라요.', 'err');
     $('requestBtn').disabled = true;
     try {

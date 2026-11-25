@@ -120,12 +120,12 @@ function renderMonthlyStatHero(elId, title, meaningSuffix, pairs, valueUnit, del
 
 function renderViewsMonthlyHero(data) {
   const pairs = data.posts.filter((p) => p.views != null).map((p) => [p.timestamp.slice(0, 10), p.views]);
-  renderMonthlyStatHero('viewsMonthlyHero', '조회수', '발행된 게시물이 지금까지 모은 노출 총 횟수', pairs, '회 조회', '회');
+  renderMonthlyStatHero('viewsMonthlyHero', '조회수', '발행된 게시물이 지금까지 모은 노출 총 횟수', pairs, '회', '회');
 }
 
 function renderReachMonthlyHero(data) {
   const pairs = data.history.filter((h) => h.reach != null).map((h) => [h.date, h.reach]);
-  renderMonthlyStatHero('reachMonthlyHero', '도달수', '게시물을 본 사람 수(중복 제외)', pairs, '명 도달', '명');
+  renderMonthlyStatHero('reachMonthlyHero', '도달수', '게시물을 본 사람 수(중복 제외)', pairs, '회', '회');
 }
 
 function renderDemographics(data) {
